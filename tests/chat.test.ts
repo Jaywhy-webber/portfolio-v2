@@ -206,6 +206,29 @@ describe("chat widget", () => {
     expect(panel).toContain("linkedin.com/in/jerome-yeoh-35a738217");
   });
 
+  test("the wait is filled with animated dots, hidden from screen readers", () => {
+    const src = widget();
+    expect(src).toContain("chat-typing");
+    // Three dots, staggered, so it reads as motion rather than a blink.
+    expect(src).toContain("chat-typing-bounce");
+    expect(src).toContain('dots.setAttribute("aria-hidden", "true")');
+
+    const css = readdirSync("dist/_astro")
+      .filter((f) => f.endsWith(".css"))
+      .map((f) => readFileSync(`dist/_astro/${f}`, "utf-8"))
+      .join("\n");
+    expect(css).toMatch(/@keyframes chat-typing-bounce/);
+    expect(css).toMatch(/chat-typing i\{[^}]*animation:chat-typing-bounce/);
+    expect(css).toContain("animation-delay:.16s");
+    expect(css).toContain("animation-delay:.32s");
+  });
+
+  test("the dots hold still rather than freezing mid-bounce under reduced motion", () => {
+    // The global reduced-motion rule collapses animations to 0.01ms, which
+    // would strand the dots at an arbitrary keyframe.
+    expect(widget()).toMatch(/prefers-reduced-motion[\s\S]*?chat-typing i[\s\S]*?animation: none/);
+  });
+
   test("history is session-scoped, so nothing about a visitor persists", () => {
     expect(widget()).toContain("sessionStorage");
     expect(widget()).not.toContain("localStorage");

@@ -128,6 +128,19 @@ import CopyButton from "./CopyButton.astro";
       return el;
     }
 
+    /**
+     * Animated dots for the wait before the first token. Setting textContent
+     * on the bubble later replaces these, so nothing has to clean them up.
+     */
+    function showTyping(el: HTMLElement) {
+      const dots = document.createElement("span");
+      dots.className = "chat-typing";
+      // Decorative: the log is aria-live, and announcing dots would be noise.
+      dots.setAttribute("aria-hidden", "true");
+      for (let i = 0; i < 3; i++) dots.appendChild(document.createElement("i"));
+      el.appendChild(dots);
+    }
+
     /** Turns [/route] citations into real links once a reply has finished. */
     function linkCitations(el: HTMLElement) {
       const text = el.textContent ?? "";
@@ -185,6 +198,7 @@ import CopyButton from "./CopyButton.astro";
 
       const reply = bubble("bot");
       reply.classList.add("chat-msg--pending");
+      showTyping(reply);
       let answer = "";
 
       try {
@@ -353,10 +367,54 @@ import CopyButton from "./CopyButton.astro";
     white-space: normal;
   }
 
-  /* Empty bubble while the first token is in flight. */
-  :global(.chat-msg--pending)::after {
-    content: "…";
-    color: var(--color-text-muted);
+  /* Three dots riding a wave while the first token is in flight. */
+  :global(.chat-typing) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding-block: 0.2rem;
+  }
+
+  :global(.chat-typing i) {
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    animation: chat-typing-bounce 1.1s ease-in-out infinite;
+  }
+
+  :global(.chat-typing i:nth-child(2)) {
+    animation-delay: 0.16s;
+  }
+
+  :global(.chat-typing i:nth-child(3)) {
+    animation-delay: 0.32s;
+  }
+
+  @keyframes chat-typing-bounce {
+    0%,
+    70%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.45;
+    }
+    35% {
+      transform: translateY(-0.28rem);
+      opacity: 1;
+    }
+  }
+
+  /*
+   * The global reduced-motion rule collapses animations to 0.01ms, which would
+   * freeze the dots at whatever keyframe they land on. Hold them steady and
+   * legible instead, so the bubble still reads as "waiting".
+   */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.chat-typing i) {
+      animation: none;
+      opacity: 0.6;
+      transform: none;
+    }
   }
 
   :global(.chat-cite) {
