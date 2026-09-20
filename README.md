@@ -23,9 +23,50 @@ npm run preview -- --port 4323
 ## Checks
 
 ```bash
-npm run test        # vitest — 106 tests, includes a real astro build
+npm run test        # vitest — 130 tests, includes a real astro build
 npm run typecheck   # astro check
 ```
+
+## The assistant
+
+A grounded chatbot answers visitor questions from the site's own content. The bubble sits
+bottom-right on every page.
+
+```bash
+echo 'OPENAI_API_KEY=sk-...' > .dev.vars   # gitignored
+npm run dev:worker                          # builds, generates the corpus, runs wrangler
+```
+
+`npm run dev` (plain Astro) still works for design work, but `/api/chat` only exists under
+`wrangler dev`, so the widget will report that it cannot reach the assistant.
+
+**The key never reaches the browser.** The site is static; a key the page can read is a key
+a visitor can spend. It lives as a Worker secret (`wrangler secret put OPENAI_API_KEY`) and
+locally in `.dev.vars`. Both are gitignored, and a test asserts neither is tracked.
+
+### How it stays grounded
+
+- The whole corpus (13 documents, ~22k tokens) goes in the system prompt. No vector store:
+  at this size retrieval can only *lose* the relevant passage, which is the usual cause of
+  a confident wrong answer.
+- Corpus first in the prompt, so OpenAI's prefix caching can hit the stable part.
+- `temperature: 0`. The prompt forbids inferring employers, dates, grades, salary or
+  availability, and tells it that "the site doesn't cover that" is a correct answer.
+- Answers cite the route they came from; the widget turns `[/projects/x/]` into a real link.
+- **The model never writes contact details.** The panel renders the copy-email control and
+  the LinkedIn link itself, so the one thing that must be right cannot be got wrong.
+
+Grounding reduces fabrication sharply; it does not eliminate it. The panel carries a line
+saying so.
+
+### Cost and abuse
+
+- Per-IP rate limit via Cloudflare's binding (10/min — the binding only supports 10s or 60s
+  windows, so this is tighter than the per-10-minutes originally discussed).
+- Caps on question length (600 chars), replayed history (8 turns) and `max_tokens` (400).
+- Out-of-scope questions are refused, which is also what stops it being a free ChatGPT proxy.
+- **Set a hard monthly spend cap in the OpenAI dashboard.** It is the only control that
+  still works if the others are wrong.
 
 ## What changed from v1
 

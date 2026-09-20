@@ -4,6 +4,7 @@ import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import MobileNav from "../components/MobileNav.astro";
 import DemoOverlay from "../components/DemoOverlay.astro";
+import ChatWidget from "../components/ChatWidget.astro";
 
 interface Props {
   title: string;
@@ -25,4 +26,5 @@ const { title, description, ogImage, ogType, activePath } = Astro.props;
   <SiteFooter />
   <MobileNav activePath={activePath} />
   <DemoOverlay />
+  <ChatWidget />
 </BaseLayout>
