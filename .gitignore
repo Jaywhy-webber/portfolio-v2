@@ -2,3 +2,10 @@ dist/
 node_modules/
 .astro/
 .DS_Store
+
+# Worker secrets — never commit
+.dev.vars
+.wrangler/
+
+# Generated at build time from the content collections
+worker/corpus.ts
