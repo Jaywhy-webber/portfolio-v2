@@ -317,38 +317,47 @@ import CopyButton from "./CopyButton.astro";
     gap: 0.6rem;
   }
 
-  .chat-msg {
+  /*
+   * Message bubbles are created in JS, so they never receive Astro's
+   * data-astro-cid attribute and scoped selectors would not match them.
+   * These rules have to be global to reach a dynamically appended node.
+   */
+  :global(.chat-msg) {
     font-size: 0.8125rem;
     line-height: 1.55;
     padding: 0.5rem 0.7rem;
     border-radius: 2px;
     max-width: 90%;
+    /* Model replies can contain real newlines worth keeping. */
     white-space: pre-wrap;
   }
 
-  .chat-msg--user {
+  :global(.chat-msg--user) {
     align-self: flex-end;
     background: var(--color-accent-soft);
     color: var(--color-text);
   }
 
-  .chat-msg--bot {
+  :global(.chat-msg--bot) {
     align-self: flex-start;
     background: var(--color-surface-alt);
     color: var(--color-text);
   }
 
+  /* Authored in the template, so its source indentation would survive
+     pre-wrap as stray leading spaces. */
   .chat-intro {
     color: var(--color-text-muted);
+    white-space: normal;
   }
 
   /* Empty bubble while the first token is in flight. */
-  .chat-msg--pending::after {
+  :global(.chat-msg--pending)::after {
     content: "…";
     color: var(--color-text-muted);
   }
 
-  .chat-msg :global(.chat-cite) {
+  :global(.chat-cite) {
     font-size: 0.75rem;
     color: var(--color-accent);
     border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
