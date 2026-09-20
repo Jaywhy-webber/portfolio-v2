@@ -117,6 +117,11 @@ async function handleChat(
         messages,
         // Grounded restatement, not creative writing.
         temperature: 0,
+        // gemma4 and qwen3.5 stream chain-of-thought before any answer, which
+        // cost ~4.8s of dead air per question and is worthless here: the task
+        // is restating what a document says, not working something out.
+        // Measured on gemma4:26b — 5.9s to first word, down to 1.1s.
+        reasoning_effort: "none",
         max_tokens: LIMITS.maxOutputTokens,
         stream: true,
       }),
