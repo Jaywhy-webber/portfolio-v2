@@ -10,11 +10,15 @@
     "not_found_handling": "404-page"
   },
 
-  // Model id only. The API key is a secret:
-  //   wrangler secret put OPENAI_API_KEY
+  // Endpoint and model only. The API key is a secret:
+  //   wrangler secret put LLM_API_KEY
   // and locally it lives in .dev.vars, which is gitignored.
+  //
+  // The endpoint speaks the OpenAI chat-completions protocol but is NUS SoC's
+  // LLM service, so the vars are named for the protocol, not the vendor.
   "vars": {
-    "OPENAI_MODEL": "gpt-4o-mini"
+    "LLM_BASE_URL": "https://soclaas-api.comp.nus.edu.sg/v1",
+    "LLM_MODEL": "default"
   },
 
   // Per-IP rate limit. Cloudflare's binding only supports 10s or 60s windows,

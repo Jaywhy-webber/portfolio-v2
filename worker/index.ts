@@ -10,7 +10,8 @@ import { CORPUS } from "./corpus";
 import { buildSystemPrompt, LIMITS, REFUSALS } from "./prompt";
 import type { ChatMessage, Env } from "./types";
 
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_BASE_URL = "https://soclaas-api.comp.nus.edu.sg/v1";
+const DEFAULT_MODEL = "default";
 
 /** Built once per isolate, not per request — it is ~22k tokens of string work. */
 let cachedSystemPrompt: string | undefined;
@@ -98,14 +99,15 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
 
   let upstream: Response;
   try {
-    upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+    const baseUrl = (env.LLM_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
+    upstream = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        authorization: `Bearer ${env.LLM_API_KEY}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: env.OPENAI_MODEL || DEFAULT_MODEL,
+        model: env.LLM_MODEL || DEFAULT_MODEL,
         messages,
         // Grounded restatement, not creative writing.
         temperature: 0,
@@ -118,7 +120,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
   }
 
   if (!upstream.ok || !upstream.body) {
-    console.error("openai error", upstream.status, await upstream.text().catch(() => ""));
+    console.error("llm error", upstream.status, await upstream.text().catch(() => ""));
     return refuse(REFUSALS.upstreamFailed);
   }
 

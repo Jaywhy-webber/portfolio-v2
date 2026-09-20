@@ -14,10 +14,16 @@ export interface ChatMessage {
 }
 
 export interface Env {
-  /** Set with `wrangler secret put OPENAI_API_KEY`; never in the repo. */
-  OPENAI_API_KEY: string;
-  /** Model id, so swapping tiers is config rather than code. */
-  OPENAI_MODEL?: string;
+  /**
+   * Set with `wrangler secret put LLM_API_KEY`; never in the repo.
+   * Named for the protocol, not the vendor: the endpoint speaks the OpenAI
+   * chat-completions API but is NUS SoC's LLM service, not OpenAI.
+   */
+  LLM_API_KEY: string;
+  /** API root, e.g. https://soclaas-api.comp.nus.edu.sg/v1 */
+  LLM_BASE_URL?: string;
+  /** Model id, so swapping models is config rather than code. */
+  LLM_MODEL?: string;
   /** Cloudflare rate-limiting binding. */
   CHAT_RATE_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   /** Static asset binding, present when the Worker serves ./dist. */

@@ -118,12 +118,15 @@ describe("worker wiring", () => {
   const worker = () => readFileSync("worker/index.ts", "utf-8");
 
   test("the key is read from the environment, never inlined", () => {
-    expect(worker()).toContain("env.OPENAI_API_KEY");
-    expect(worker()).not.toMatch(/sk-[A-Za-z0-9]/);
+    expect(worker()).toContain("env.LLM_API_KEY");
+    // Neither an OpenAI-style nor a SoCLaaS-style key may appear in source.
+    expect(worker()).not.toMatch(/sk-[A-Za-z0-9]{12}/);
+    expect(worker()).not.toMatch(/clsk_[A-Za-z0-9]/);
   });
 
-  test("the model id is configurable", () => {
-    expect(worker()).toContain("env.OPENAI_MODEL");
+  test("endpoint and model are both configurable", () => {
+    expect(worker()).toContain("env.LLM_BASE_URL");
+    expect(worker()).toContain("env.LLM_MODEL");
   });
 
   test("temperature is pinned to 0 for grounded restatement", () => {
@@ -132,15 +135,15 @@ describe("worker wiring", () => {
 
   test("the rate limiter is consulted before the model is called", () => {
     const src = worker();
-    expect(src.indexOf("CHAT_RATE_LIMIT")).toBeLessThan(src.indexOf("api.openai.com"));
+    expect(src.indexOf("CHAT_RATE_LIMIT")).toBeLessThan(src.indexOf("chat/completions"));
   });
 
   test("wrangler config ships the assets binding and no secret", () => {
     const config = readFileSync("wrangler.jsonc", "utf-8");
     expect(config).toContain('"binding": "ASSETS"');
     expect(config).toContain("CHAT_RATE_LIMIT");
-    expect(config).not.toContain("OPENAI_API_KEY\":");
-    expect(config).not.toMatch(/sk-[A-Za-z0-9]/);
+    expect(config).not.toContain("LLM_API_KEY\":");
+    expect(config).not.toMatch(/clsk_[A-Za-z0-9]/);
   });
 
   test("local secrets file is absent from the repo", () => {
