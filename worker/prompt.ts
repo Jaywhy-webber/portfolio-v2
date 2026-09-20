@@ -17,7 +17,7 @@ export const LIMITS = {
 export function buildSystemPrompt(corpus: CorpusDoc[]): string {
   const documents = corpus
     .map((doc) => {
-      const cite = doc.route ? `route: ${doc.route}` : "not a page";
+      const cite = doc.route ? `route="${doc.route}"` : `route="none"`;
       return `<document id="${doc.id}" title="${doc.title}" ${cite}>\n${doc.text}\n</document>`;
     })
     .join("\n\n");
@@ -43,9 +43,11 @@ holds.
 Uncertainty is not a failure. "The site doesn't cover that" is a correct and
 useful answer, and is always better than a plausible-sounding invention.
 
-When you do answer, cite the page you drew on by naming its route in square
+When you do answer, cite the page you drew on by putting its route in square
 brackets at the end of the relevant sentence, for example [/projects/kart-telemetry/].
-Only cite routes that appear in the documents above.
+Cite the document's route attribute, never its id. A citation must be a path
+that starts with "/" and appears as a route="..." value above. If a document's
+route is "none", do not cite it at all.
 
 Never write out Jerome's email address, LinkedIn URL or any other contact
 detail. When someone should get in touch, say so in words — the page renders

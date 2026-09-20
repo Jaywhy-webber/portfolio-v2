@@ -67,8 +67,14 @@ describe("system prompt", () => {
     const prompt = buildSystemPrompt(docs);
     for (const doc of docs) {
       expect(prompt).toContain(`id="${doc.id}"`);
-      expect(prompt).toContain(`route: ${doc.route}`);
+      expect(prompt).toContain(`route="${doc.route}"`);
     }
+  });
+
+  test("tells the model to cite routes, not document ids", async () => {
+    const prompt = flat(buildSystemPrompt(await corpus()));
+    // A cited id renders as a link to a page that does not exist.
+    expect(prompt).toContain("never its id");
   });
 
   test("puts the corpus before the instructions so the prefix can cache", async () => {

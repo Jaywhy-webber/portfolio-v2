@@ -134,7 +134,9 @@ import CopyButton from "./CopyButton.astro";
       if (!text.includes("[/")) return;
       el.replaceChildren();
       let cursor = 0;
-      for (const match of text.matchAll(/\[(\/[^\]\s]*)\]/g)) {
+      // Routes only — a colon means the model cited a document id, which
+      // would otherwise render as a link to a page that does not exist.
+      for (const match of text.matchAll(/\[(\/[^\]\s:]*)\]/g)) {
         const at = match.index ?? 0;
         el.append(text.slice(cursor, at));
         const a = document.createElement("a");

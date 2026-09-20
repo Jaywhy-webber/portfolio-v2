@@ -11,7 +11,9 @@ import { buildSystemPrompt, LIMITS, REFUSALS } from "./prompt";
 import type { ChatMessage, Env } from "./types";
 
 const DEFAULT_BASE_URL = "https://soclaas-api.comp.nus.edu.sg/v1";
-const DEFAULT_MODEL = "default";
+// Not SoCLaaS's "default" alias: that points at an agentic-coding model and
+// costs ~4x more per question for a task that is grounded restatement.
+const DEFAULT_MODEL = "gemma4:26b";
 
 /** Built once per isolate, not per request — it is ~22k tokens of string work. */
 let cachedSystemPrompt: string | undefined;
@@ -120,7 +122,16 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
   }
 
   if (!upstream.ok || !upstream.body) {
-    console.error("llm error", upstream.status, await upstream.text().catch(() => ""));
+    // Length only, never any part of the key: a wrong length is the tell for a
+    // stale or truncated value, which is what a 401 here usually means.
+    console.error(
+      "llm error",
+      upstream.status,
+      await upstream.text().catch(() => ""),
+      "keyLen=" + (env.LLM_API_KEY?.length ?? "undefined"),
+      "base=" + (env.LLM_BASE_URL || DEFAULT_BASE_URL),
+      "model=" + (env.LLM_MODEL || DEFAULT_MODEL),
+    );
     return refuse(REFUSALS.upstreamFailed);
   }
 

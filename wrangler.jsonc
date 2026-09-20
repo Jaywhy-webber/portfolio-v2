@@ -16,9 +16,13 @@
   //
   // The endpoint speaks the OpenAI chat-completions protocol but is NUS SoC's
   // LLM service, so the vars are named for the protocol, not the vendor.
+  // "default" aliases an agentic-coding model and is the priciest chat option
+  // in the catalogue: ~$0.0103 per question against this 22k-token corpus,
+  // versus ~$0.0024 on gemma4:26b. The task is grounded restatement, not
+  // coding, and 128k context is ample for a 22k corpus.
   "vars": {
     "LLM_BASE_URL": "https://soclaas-api.comp.nus.edu.sg/v1",
-    "LLM_MODEL": "default"
+    "LLM_MODEL": "gemma4:26b"
   },
 
   // Per-IP rate limit. Cloudflare's binding only supports 10s or 60s windows,
