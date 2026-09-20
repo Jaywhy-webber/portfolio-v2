@@ -7,7 +7,6 @@ const validExperience = {
   dateRange: "2024 — 2025",
   title: "Data Analyst Intern",
   org: "Some Organisation",
-  kind: "role",
   sortOrder: 1,
 };
 
@@ -17,10 +16,6 @@ describe("experienceSchema", () => {
     expect(parsed.tags).toEqual([]);
     expect(parsed.relatedProjects).toEqual([]);
     expect(parsed.dateNote).toBeUndefined();
-  });
-
-  test("rejects a kind outside role/education", () => {
-    expect(() => experienceSchema.parse({ ...validExperience, kind: "project" })).toThrow();
   });
 
   test("requires a sortOrder so /work ordering is deterministic", () => {
@@ -77,7 +72,6 @@ describe("projectSchema facts fields", () => {
     title: "Kart Telemetry Dashboard",
     summary: "Turns raw sensor logs into lap insights.",
     stack: ["Python"],
-    flagship: true,
     sortOrder: 1,
     preview: { kind: "video", assetPath: "/a.webm", posterPath: "/a.png" },
     demo: { kind: "bundled", localPath: "/demos/kart-telemetry/" },

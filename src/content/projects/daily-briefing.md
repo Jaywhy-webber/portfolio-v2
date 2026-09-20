@@ -6,7 +6,6 @@ stack:
   - GitHub Actions
   - Astro
   - API Integrations
-flagship: true
 sortOrder: 3
 preview:
   kind: video

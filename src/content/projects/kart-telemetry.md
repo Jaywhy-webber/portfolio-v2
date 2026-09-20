@@ -6,7 +6,6 @@ stack:
   - Pandas
   - Plotly
   - HTML
-flagship: true
 sortOrder: 2
 preview:
   kind: video

@@ -31,7 +31,6 @@ export const projectSchema = z.object({
   title: z.string(),
   summary: z.string(),
   stack: z.array(z.string()),
-  flagship: z.boolean(),
   sortOrder: z.number().int(),
   preview: previewSchema,
   demo: demoSchema,

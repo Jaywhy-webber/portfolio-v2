@@ -23,7 +23,7 @@ npm run preview -- --port 4323
 ## Checks
 
 ```bash
-npm run test        # vitest — 108 tests, includes a real astro build
+npm run test        # vitest — 106 tests, includes a real astro build
 npm run typecheck   # astro check
 ```
 
@@ -43,10 +43,12 @@ npm run typecheck   # astro check
 
 ## Content model
 
-- `src/content/projects/*.md` — unchanged from v1, plus optional `role`, `timeline`, `status`
-  for the facts panel
+- `src/content/projects/*.md` — plus optional `role`, `timeline`, `status` for the facts
+  panel. `flagship` was removed: order comes from `sortOrder` and "has a playable demo"
+  is already `demo.kind`, so the flag encoded nothing and could drift out of sync.
 - `src/content/readmes/*.md` — unchanged from v1
-- `src/content/experience/*.md` — new, drives `/work` (currently empty)
+- `src/content/experience/*.md` — new, drives `/work` (currently empty). One flat
+  chronological list; `dateNote` carries "Internship" / "BSc" rather than a `kind` field.
 - `src/content/research/*.md` — new, drives `/research`
 - `src/data/workflow.ts`, `src/data/pipeline.ts` — step copy for the two diagrams
 
@@ -63,7 +65,6 @@ invented text:
    dateNote: Internship
    title: Data Analyst Intern
    org: Some Organisation
-   kind: role            # role | education
    tags: [Python, SQL]
    relatedProjects: [kart-telemetry]
    sortOrder: 1

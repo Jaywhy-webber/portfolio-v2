@@ -6,7 +6,6 @@ stack:
   - FastAPI
   - Python
   - Google Maps API
-flagship: false
 sortOrder: 1
 preview:
   kind: video

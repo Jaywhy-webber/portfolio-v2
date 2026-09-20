@@ -5,7 +5,6 @@ const validEntry = {
   title: "Test Project",
   summary: "A one-line summary of the project.",
   stack: ["TypeScript", "Astro"],
-  flagship: true,
   sortOrder: 1,
   preview: {
     kind: "video" as const,
@@ -45,12 +44,6 @@ describe("project schema", () => {
 
   test("rejects entry with non-array stack", () => {
     const result = projectSchema.safeParse({ ...validEntry, stack: "TypeScript" });
-    expect(result.success).toBe(false);
-  });
-
-  test("rejects entry missing flagship", () => {
-    const { flagship, ...rest } = validEntry;
-    const result = projectSchema.safeParse(rest);
     expect(result.success).toBe(false);
   });
 

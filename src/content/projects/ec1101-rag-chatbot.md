@@ -6,7 +6,6 @@ stack:
   - Chroma
   - Groq / Llama 3.3
   - Streamlit
-flagship: false
 sortOrder: 4
 preview:
   kind: animated-screenshot

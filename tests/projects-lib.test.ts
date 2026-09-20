@@ -17,9 +17,9 @@ describe("sortProjects", () => {
     expect(sorted.map((e) => e.id)).toEqual(["routlette", "kart", "briefing", "ec1101"]);
   });
 
-  test("a non-flagship project can sit first when numbered first", () => {
-    // Routlette has no bundled demo, so it is not flagship — ordering must not
-    // depend on that flag.
+  test("a project with no demo can still sit first", () => {
+    // Routlette has no bundled demo. Ordering is sortOrder alone, so nothing
+    // about what a project ships can override where the author put it.
     const sorted = sortProjects([entry("kart", 2), entry("routlette", 1)]);
     expect(sorted[0].id).toBe("routlette");
   });
