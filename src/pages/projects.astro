@@ -1,0 +1,20 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import ProjectList from "../components/ProjectList.astro";
+---
+
+<PageLayout
+  title="Projects — Jerome Yeoh"
+  description="Interactive data and AI projects by Jerome Yeoh, each with a demo, a write-up and the source."
+  activePath="/projects"
+>
+  <div class="shell page-top">
+    <ProjectList headingLevel="h1" />
+  </div>
+</PageLayout>
+
+<style>
+  .page-top {
+    padding-top: 2.75rem;
+  }
+</style>

@@ -1,0 +1,131 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import SlideViewer from "../components/SlideViewer.astro";
+import { encodePath } from "../lib/projects";
+import { getCollection, render, type CollectionEntry } from "astro:content";
+
+const entries = (await getCollection("research")).sort(
+  (a: CollectionEntry<"research">, b: CollectionEntry<"research">) =>
+    a.data.sortOrder - b.data.sortOrder,
+);
+
+const sections = await Promise.all(
+  entries.map(async (entry: CollectionEntry<"research">) => ({
+    entry,
+    Content: (await render(entry)).Content,
+  })),
+);
+---
+
+<PageLayout
+  title="Research — Jerome Yeoh"
+  description="Research projects and presented findings, with the slides alongside."
+  activePath="/research"
+>
+  <div class="shell page-top">
+    <h1 class="visually-hidden">Research</h1>
+
+    {sections.map(({ entry, Content }, i) => (
+      <section class="research-entry">
+        <div class="entry-head">
+          <span class="index-numeral entry-index">R{i + 1}</span>
+          <h2 class="entry-title">{entry.data.title}</h2>
+          <span class="tag entry-year">{entry.data.year}</span>
+          {entry.data.slidesUrl && (
+            <a href={encodePath(entry.data.slidesUrl)} class="btn btn--sm entry-download" download>
+              Download slides
+            </a>
+          )}
+        </div>
+
+        <div class="entry-grid">
+          <div class="entry-meta">
+            <div class="prose entry-abstract">
+              <Content />
+            </div>
+            <ul class="tag-row entry-tags" role="list">
+              {entry.data.tags.map((tag: string) => <li class="tag">{tag}</li>)}
+            </ul>
+          </div>
+
+          <SlideViewer viewer={entry.data.viewer} title={entry.data.title} />
+        </div>
+      </section>
+    ))}
+  </div>
+</PageLayout>
+
+<style>
+  .page-top {
+    padding-top: 2.75rem;
+  }
+
+  .research-entry {
+    padding-bottom: 3rem;
+    border-bottom: var(--rule);
+  }
+
+  .research-entry + .research-entry {
+    padding-top: 3rem;
+  }
+
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    padding-bottom: 0.85rem;
+    border-bottom: var(--rule);
+    margin-bottom: 1.75rem;
+  }
+
+  .entry-index {
+    flex-shrink: 0;
+  }
+
+  .entry-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+
+  .entry-year {
+    flex-shrink: 0;
+    color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  }
+
+  .entry-download {
+    margin-left: auto;
+  }
+
+  /* Board: 1fr / 1.6fr with a 24px (3.5%) gap. */
+  .entry-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    column-gap: 3.5%;
+    align-items: start;
+  }
+
+  .entry-abstract :global(p) {
+    font-size: 0.875rem;
+  }
+
+  .entry-tags {
+    margin-top: 1.1rem;
+  }
+
+  @media (max-width: 860px) {
+    .entry-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .entry-download {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+</style>

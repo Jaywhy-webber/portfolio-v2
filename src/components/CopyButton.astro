@@ -1,0 +1,167 @@
+---
+import Icon from "./Icon.astro";
+import type { IconName } from "./Icon.astro";
+
+interface Props {
+  /** Text written to the clipboard. */
+  value: string;
+  label: string;
+  doneLabel?: string;
+  /** "btn" matches an action row; "plain" matches a text link row. */
+  variant?: "btn" | "plain";
+  /**
+   * Render as an icon-only control. The label still ships, visually hidden, so
+   * the button keeps an accessible name; a tick replaces the icon on copy, and
+   * the value shows in a tooltip on hover.
+   */
+  icon?: IconName;
+  /** Tooltip prompt under the value. Icon mode only. */
+  hint?: string;
+  /** Extra classes for the underlying control, e.g. "btn--sm". */
+  class?: string;
+}
+
+const {
+  value,
+  label,
+  doneLabel = "Copied",
+  variant = "btn",
+  icon,
+  hint = "(click to copy)",
+  class: extra,
+}: Props = Astro.props;
+
+// An icon-only button has nothing legible on it, so it gets the tooltip. The
+// native title is dropped there — two tooltips on one control is one too many.
+const showTip = Boolean(icon);
+---
+
+<button
+  type="button"
+  class:list={[
+    "copy-button",
+    variant === "btn" ? "btn" : "link-plain",
+    icon && "btn--icon",
+    showTip && "has-tip",
+    extra,
+  ]}
+  data-copy-value={value}
+  data-copy-done={doneLabel}
+  data-copy-hint-idle={showTip ? hint : undefined}
+  title={icon && !showTip ? label : undefined}
+>
+  {icon && (
+    <Fragment>
+      <span data-copy-glyph="idle"><Icon name={icon} /></span>
+      <span data-copy-glyph="done" hidden><Icon name="check" /></span>
+    </Fragment>
+  )}
+
+  <span class:list={[icon && "visually-hidden"]} data-copy-label>{label}</span>
+
+  {showTip && (
+    <span class="tip" aria-hidden="true">
+      <span class="tip__value">{value}</span>
+      <span class="tip__hint" data-copy-hint>{hint}</span>
+    </span>
+  )}
+</button>
+
+<script>
+  function initCopyButtons() {
+    document.querySelectorAll<HTMLButtonElement>("[data-copy-value]").forEach((btn) => {
+      if (btn.dataset.copyReady === "true") return;
+      btn.dataset.copyReady = "true";
+
+      const label = btn.querySelector<HTMLElement>("[data-copy-label]");
+      if (!label) return;
+
+      const idleGlyph = btn.querySelector<HTMLElement>('[data-copy-glyph="idle"]');
+      const doneGlyph = btn.querySelector<HTMLElement>('[data-copy-glyph="done"]');
+      const tipHint = btn.querySelector<HTMLElement>("[data-copy-hint]");
+
+      const value = btn.dataset.copyValue ?? "";
+      const original = label.textContent ?? "";
+      const done = btn.dataset.copyDone ?? "Copied";
+      const idleHint = btn.dataset.copyHintIdle ?? "";
+      let timer: number | undefined;
+
+      function setState(state: "idle" | "copied" | "failed") {
+        const copied = state === "copied";
+
+        btn.classList.toggle("copy-button--done", copied);
+        btn.classList.toggle("copy-button--failed", state === "failed");
+
+        if (idleGlyph && doneGlyph) {
+          idleGlyph.hidden = copied;
+          doneGlyph.hidden = !copied;
+        }
+
+        if (tipHint) {
+          // The tooltip already shows the value, so it carries the outcome and
+          // the button keeps its own label untouched.
+          tipHint.textContent =
+            state === "copied" ? done : state === "failed" ? "(copy it manually)" : idleHint;
+          label!.textContent = copied ? done : original;
+        } else {
+          // No tooltip: fall back to putting the value on the button itself so
+          // it can still be read and copied by hand.
+          label!.textContent = state === "copied" ? done : state === "failed" ? value : original;
+          if (idleGlyph && doneGlyph) btn.title = label!.textContent ?? "";
+        }
+      }
+
+      /**
+       * Chrome leaves writeText pending indefinitely when the page lacks user
+       * activation or clipboard permission — it neither resolves nor rejects.
+       * Without a deadline the button would simply never respond.
+       */
+      function writeClipboard(text: string): Promise<void> {
+        return Promise.race([
+          navigator.clipboard.writeText(text),
+          new Promise<void>((_, reject) =>
+            window.setTimeout(() => reject(new Error("clipboard timeout")), 1200),
+          ),
+        ]);
+      }
+
+      btn.addEventListener("click", async () => {
+        if (!value) return;
+
+        try {
+          await writeClipboard(value);
+          setState("copied");
+        } catch {
+          setState("failed");
+        }
+
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => setState("idle"), 2400);
+      });
+    });
+  }
+
+  document.addEventListener("astro:page-load", initCopyButtons);
+</script>
+
+<style>
+  .copy-button {
+    cursor: pointer;
+  }
+
+  .copy-button--done {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  /* The tip itself is styled globally; only the copied state is local. */
+  .copy-button--done .tip__hint {
+    color: var(--color-accent-soft);
+    font-weight: 600;
+  }
+
+  /* No tooltip to carry the message, so the value goes on the button. */
+  .copy-button--failed:not(.has-tip) {
+    white-space: normal;
+  }
+</style>

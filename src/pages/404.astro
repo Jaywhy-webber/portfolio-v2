@@ -1,0 +1,44 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+---
+
+<PageLayout
+  title="Page not found — Jerome Yeoh"
+  description="The page you're looking for doesn't exist."
+>
+  <div class="shell error-page">
+    <span class="index-numeral">404</span>
+    <h1 class="display error-title">Page not found</h1>
+    <p class="error-text">That page doesn't exist. The projects are a good place to restart.</p>
+    <div class="error-actions">
+      <a href="/" class="btn btn--filled">Back to the portfolio</a>
+      <a href="/projects" class="link-plain link-quiet">See all projects</a>
+    </div>
+  </div>
+</PageLayout>
+
+<style>
+  .error-page {
+    padding-block: clamp(4rem, 12vw, 8rem);
+    max-width: 38rem;
+  }
+
+  .error-title {
+    margin-top: 0.75rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .error-text {
+    margin-top: 0.85rem;
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+  }
+
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+</style>

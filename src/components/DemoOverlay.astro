@@ -1,0 +1,261 @@
+---
+/**
+ * Full-screen demo overlay, one instance per page from PageLayout.
+ * Any element carrying data-demo-src (plus data-demo-title) opens it.
+ * Handles Escape, focus trap, scroll lock, and focus return to the trigger.
+ */
+---
+
+<div
+  class="demo-overlay"
+  id="demo-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="demo-overlay-title"
+  hidden
+>
+  <div class="demo-overlay__backdrop" data-overlay-close></div>
+
+  <div class="demo-overlay__panel">
+    <div class="demo-overlay__bar">
+      <h2 class="demo-overlay__title" id="demo-overlay-title"></h2>
+      <div class="demo-overlay__actions">
+        <a class="btn btn--sm demo-overlay__newtab" id="demo-overlay-newtab" target="_blank" rel="noopener">
+          Open in new tab
+        </a>
+        <button type="button" class="btn btn--filled btn--sm" data-overlay-close>Close</button>
+      </div>
+    </div>
+
+    <div class="demo-overlay__stage">
+      <iframe id="demo-overlay-frame" title="Project demo" allowfullscreen></iframe>
+    </div>
+
+    <a
+      class="demo-overlay__strip"
+      id="demo-overlay-newtab-mobile"
+      target="_blank"
+      rel="noopener"
+    >Open in new tab</a>
+  </div>
+</div>
+
+<script>
+  const FOCUSABLE =
+    'a[href], button:not([disabled]), iframe, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  let lastTrigger: HTMLElement | null = null;
+
+  function overlayEl(): HTMLElement | null {
+    return document.getElementById("demo-overlay");
+  }
+
+  function openOverlay(src: string, title: string, trigger: HTMLElement) {
+    const overlay = overlayEl();
+    if (!overlay) return;
+
+    const frame = document.getElementById("demo-overlay-frame") as HTMLIFrameElement | null;
+    const titleEl = document.getElementById("demo-overlay-title");
+    const newTab = document.getElementById("demo-overlay-newtab") as HTMLAnchorElement | null;
+    const newTabMobile = document.getElementById(
+      "demo-overlay-newtab-mobile",
+    ) as HTMLAnchorElement | null;
+    if (!frame || !titleEl) return;
+
+    lastTrigger = trigger;
+    titleEl.textContent = title;
+    frame.src = src;
+    frame.title = `${title} demo`;
+    if (newTab) newTab.href = src;
+    if (newTabMobile) newTabMobile.href = src;
+
+    overlay.hidden = false;
+    document.body.classList.add("overlay-open");
+
+    const first = overlay.querySelector<HTMLElement>(FOCUSABLE);
+    first?.focus();
+  }
+
+  function closeOverlay() {
+    const overlay = overlayEl();
+    if (!overlay || overlay.hidden) return;
+
+    const frame = document.getElementById("demo-overlay-frame") as HTMLIFrameElement | null;
+
+    overlay.hidden = true;
+    document.body.classList.remove("overlay-open");
+    // Stop the demo running in the background.
+    if (frame) frame.removeAttribute("src");
+
+    lastTrigger?.focus();
+    lastTrigger = null;
+  }
+
+  function trapFocus(event: KeyboardEvent) {
+    const overlay = overlayEl();
+    if (!overlay || overlay.hidden) return;
+
+    const focusable = Array.from(overlay.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      (el) => el.offsetParent !== null || el.tagName === "IFRAME",
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+
+    if (event.shiftKey && (active === first || !overlay.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const trigger = target.closest<HTMLElement>("[data-demo-src]");
+    if (trigger) {
+      const src = trigger.dataset.demoSrc;
+      if (!src) return;
+      event.preventDefault();
+      openOverlay(src, trigger.dataset.demoTitle ?? "Demo", trigger);
+      return;
+    }
+
+    if (target.closest("[data-overlay-close]")) {
+      event.preventDefault();
+      closeOverlay();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeOverlay();
+      return;
+    }
+    if (event.key === "Tab") {
+      trapFocus(event);
+    }
+  });
+
+  // A client-side route change must never leave the overlay open.
+  document.addEventListener("astro:before-swap", () => {
+    document.body.classList.remove("overlay-open");
+    lastTrigger = null;
+  });
+</script>
+
+<style>
+  .demo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem;
+  }
+
+  .demo-overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-text) 55%, transparent);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: none;
+    cursor: pointer;
+  }
+
+  .demo-overlay__panel {
+    position: relative;
+    width: min(100%, 1280px);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px color-mix(in srgb, #000 28%, transparent);
+  }
+
+  .demo-overlay__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: var(--rule);
+    background: var(--color-surface);
+  }
+
+  .demo-overlay__title {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .demo-overlay__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .demo-overlay__stage {
+    aspect-ratio: 16 / 9;
+    background: var(--color-surface-alt);
+  }
+
+  .demo-overlay__stage iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .demo-overlay__strip {
+    display: none;
+    padding: 0.85rem;
+    text-align: center;
+    border-top: var(--rule);
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 860px) {
+    .demo-overlay {
+      padding: 0;
+    }
+
+    .demo-overlay__panel {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      border: none;
+      border-radius: 0;
+    }
+
+    .demo-overlay__newtab {
+      display: none;
+    }
+
+    .demo-overlay__stage {
+      flex: 1;
+      aspect-ratio: auto;
+    }
+
+    .demo-overlay__strip {
+      display: block;
+    }
+  }
+</style>

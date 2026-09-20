@@ -1,0 +1,207 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import ProjectTabs from "../../components/ProjectTabs.astro";
+import FactsPanel from "../../components/FactsPanel.astro";
+import type { FactLink } from "../../components/FactsPanel.astro";
+import { resolveOgImage } from "../../lib/og";
+import { demoTargetFor } from "../../lib/demo";
+import { sortProjects, indexLabel } from "../../lib/projects";
+import { getCollection, getEntry, render, type CollectionEntry } from "astro:content";
+
+export async function getStaticPaths() {
+  const projects = sortProjects(await getCollection("projects"));
+
+  return projects.map((project: CollectionEntry<"projects">, i: number) => ({
+    params: { id: project.id },
+    props: {
+      project,
+      position: i + 1,
+      previous: i > 0 ? projects[i - 1] : null,
+      next: i < projects.length - 1 ? projects[i + 1] : null,
+    },
+  }));
+}
+
+interface Props {
+  project: CollectionEntry<"projects">;
+  position: number;
+  previous: CollectionEntry<"projects"> | null;
+  next: CollectionEntry<"projects"> | null;
+}
+
+const { project, position, previous, next } = Astro.props;
+const { title, summary, stack, demo, repoUrl, preview, role, timeline, status } = project.data;
+
+const { Content } = await render(project);
+
+const readmeEntry = await getEntry("readmes", project.id);
+const Readme = readmeEntry ? (await render(readmeEntry)).Content : null;
+
+const demoTarget = demoTargetFor({ title, demo });
+const ogImage = resolveOgImage(preview.posterPath);
+const installCommand = `git clone ${repoUrl}.git`;
+
+const links: FactLink[] = [{ label: "GitHub", href: repoUrl, external: true }];
+if (demoTarget) {
+  links.push({ label: "Demo", href: demoTarget.src, external: demoTarget.external });
+}
+
+const previousPosition = position - 1;
+const nextPosition = position + 1;
+---
+
+<PageLayout
+  title={`${title} — Jerome Yeoh`}
+  description={summary}
+  ogImage={ogImage}
+  ogType="article"
+  activePath="/projects"
+>
+  <div class="shell">
+    <header class="project-head">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/projects" class="link-quiet">Projects</a>
+        <span aria-hidden="true">/</span>
+        <span class="index-numeral">{indexLabel(position)}</span>
+      </nav>
+
+      <h1 class="display project-title">{title}</h1>
+      <p class="project-summary">{summary}</p>
+    </header>
+
+    <ProjectTabs
+      repoUrl={repoUrl}
+      demoTarget={demoTarget}
+      hasReadme={Boolean(Readme)}
+      installCommand={installCommand}
+    >
+      <div slot="details" class="detail-body">
+        <div class="prose detail-prose">
+          <Content />
+        </div>
+
+        <FactsPanel
+          role={role}
+          timeline={timeline}
+          status={status}
+          stack={stack}
+          links={links}
+        />
+      </div>
+
+      {Readme && (
+        <div slot="readme" class="readme-body">
+          <div class="prose readme-prose">
+            <Readme />
+          </div>
+        </div>
+      )}
+    </ProjectTabs>
+
+    <nav class="project-foot" aria-label="Other projects">
+      {previous ? (
+        <a href={`/projects/${previous.id}/`} class="link-plain link-quiet foot-link">
+          Previous &middot; {indexLabel(previousPosition)}
+        </a>
+      ) : (
+        <span></span>
+      )}
+
+      {next && (
+        <a href={`/projects/${next.id}/`} class="link-plain foot-link foot-link--next">
+          Next &middot; {indexLabel(nextPosition)}
+        </a>
+      )}
+    </nav>
+  </div>
+</PageLayout>
+
+<style>
+  .project-head {
+    padding-block: 2.75rem 1.75rem;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .project-title {
+    font-size: clamp(1.9rem, 4.5vw, 2.85rem);
+    max-width: 22ch;
+  }
+
+  .project-summary {
+    margin-top: 0.85rem;
+    max-width: 58ch;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+  }
+
+  /*
+   * Board ratios against its 688px content column: prose 68.6%, a 26px (3.8%)
+   * channel to the rule, then a 196px (27.6%) facts column that carries its
+   * own 20px inset.
+   */
+  .detail-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 27.6%;
+    column-gap: 3.8%;
+    align-items: start;
+    padding-block: 2.5rem 3.5rem;
+  }
+
+  .readme-body {
+    padding-block: 2.5rem 3.5rem;
+  }
+
+  /*
+   * Readme runs from the left edge with a deep right inset — 190px of the
+   * board's 688px column — rather than being centred.
+   */
+  .readme-prose {
+    padding-right: 27.6%;
+  }
+
+  .project-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.5rem;
+    border-top: var(--rule);
+  }
+
+  .foot-link--next {
+    margin-left: auto;
+  }
+
+  @media (max-width: 860px) {
+    .detail-body {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding-block: 1.75rem 2.5rem;
+    }
+
+    .readme-prose {
+      padding-right: 0;
+    }
+
+    /* Facts move above the prose on narrow screens. */
+    .detail-prose {
+      order: 2;
+    }
+
+    .readme-body {
+      padding-block: 1.75rem 2.5rem;
+    }
+  }
+</style>

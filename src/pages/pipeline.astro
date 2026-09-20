@@ -1,0 +1,90 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import PipelineDiagram from "../components/PipelineDiagram.astro";
+import { pipelineSteps, pipelineIntro, pipelineRepoUrl, pipelineSampleOutput } from "../data/pipeline";
+---
+
+<PageLayout
+  title="Data pipeline — Jerome Yeoh"
+  description="A four-stage Streamlit app for cleaning, exploring and exporting tabular data."
+  activePath="/pipeline"
+>
+  <div class="shell page-top">
+    <header class="page-head">
+      <h1 class="display page-title">Data cleaning pipeline</h1>
+      <p class="page-intro">{pipelineIntro}</p>
+    </header>
+
+    <div class="diagram-wrap">
+      <PipelineDiagram
+        steps={pipelineSteps}
+        label="Data cleaning pipeline, four steps"
+        bandRatio={132 / 688}
+      />
+    </div>
+
+    {pipelineSampleOutput && (
+      <section class="sample">
+        <p class="label sample-label">Sample output</p>
+        <pre class="sample-box"><code>{pipelineSampleOutput}</code></pre>
+      </section>
+    )}
+
+    <a href={pipelineRepoUrl} class="link-plain" target="_blank" rel="noopener">
+      View the repo on GitHub
+    </a>
+  </div>
+</PageLayout>
+
+<style>
+  .page-top {
+    padding-top: 2.75rem;
+  }
+
+  .page-head {
+    padding-bottom: 2.25rem;
+    border-bottom: var(--rule);
+  }
+
+  .page-title {
+    font-size: clamp(2rem, 4.5vw, 3rem);
+  }
+
+  .page-intro {
+    margin-top: 1rem;
+    max-width: 29rem;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+
+  .diagram-wrap {
+    padding-block: 3.5rem;
+  }
+
+  .sample {
+    margin-bottom: 2.5rem;
+  }
+
+  .sample-label {
+    margin-bottom: 0.65rem;
+  }
+
+  .sample-box {
+    background: var(--color-surface-alt);
+    border: var(--rule);
+    border-radius: 2px;
+    padding: 1.1rem 1.25rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 860px) {
+    .diagram-wrap {
+      padding-block: 2.5rem;
+    }
+  }
+</style>

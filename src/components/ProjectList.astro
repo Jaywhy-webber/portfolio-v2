@@ -1,0 +1,41 @@
+---
+import SectionHeader from "./SectionHeader.astro";
+import ProjectRow from "./ProjectRow.astro";
+import { sortProjects, indexLabel } from "../lib/projects";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+interface Props {
+  /** Renders the section title as the page's h1 on /projects. */
+  headingLevel?: "h1" | "h2";
+}
+
+const { headingLevel = "h2" } = Astro.props;
+
+const projects = sortProjects(await getCollection("projects"));
+const count = indexLabel(projects.length);
+---
+
+<section class="project-list">
+  <SectionHeader title="Projects" meta={count} as={headingLevel} />
+
+  <div class="rows">
+    {projects.map((project: CollectionEntry<"projects">, i: number) => (
+      <ProjectRow
+        index={indexLabel(i + 1)}
+        title={project.data.title}
+        summary={project.data.summary}
+        stack={project.data.stack}
+        preview={project.data.preview}
+        demo={project.data.demo}
+        href={`/projects/${project.id}/`}
+      />
+    ))}
+  </div>
+</section>
+
+<style>
+  .rows {
+    /* Rows carry their own bottom rule; the last one closes the section. */
+    margin-top: 0.25rem;
+  }
+</style>

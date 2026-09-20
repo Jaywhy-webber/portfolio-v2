@@ -1,0 +1,59 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import PipelineDiagram from "../components/PipelineDiagram.astro";
+import { workflowSteps, workflowIntro, workflowRepoUrl } from "../data/workflow";
+---
+
+<PageLayout
+  title="Agentic workflow — Jerome Yeoh"
+  description="The structured agentic coding loop behind these projects, step by step."
+  activePath="/workflow"
+>
+  <div class="shell page-top">
+    <header class="page-head">
+      <h1 class="display page-title">Agentic workflow</h1>
+      <p class="page-intro">{workflowIntro}</p>
+    </header>
+
+    <div class="diagram-wrap">
+      <PipelineDiagram steps={workflowSteps} label="Agentic workflow, seven steps" />
+    </div>
+
+    <a href={workflowRepoUrl} class="link-plain" target="_blank" rel="noopener">
+      View the repo on GitHub
+    </a>
+  </div>
+</PageLayout>
+
+<style>
+  .page-top {
+    padding-top: 2.75rem;
+  }
+
+  .page-head {
+    padding-bottom: 2.25rem;
+    border-bottom: var(--rule);
+  }
+
+  .page-title {
+    font-size: clamp(2rem, 4.5vw, 3rem);
+  }
+
+  .page-intro {
+    margin-top: 1rem;
+    max-width: 29rem;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+
+  .diagram-wrap {
+    padding-block: 3.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .diagram-wrap {
+      padding-block: 2.5rem;
+    }
+  }
+</style>

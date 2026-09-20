@@ -1,0 +1,135 @@
+---
+export interface FactLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+interface Props {
+  role?: string;
+  timeline?: string;
+  status?: string;
+  stack: string[];
+  links: FactLink[];
+}
+
+const { role, timeline, status, stack, links } = Astro.props;
+---
+
+<aside class="facts" aria-label="Project facts">
+  <p class="label facts-heading">Facts</p>
+
+  <dl class="facts-list">
+    {role && (
+      <div class="fact">
+        <dt class="label">Role</dt>
+        <dd>{role}</dd>
+      </div>
+    )}
+
+    {timeline && (
+      <div class="fact">
+        <dt class="label">Timeline</dt>
+        <dd>{timeline}</dd>
+      </div>
+    )}
+
+    {status && (
+      <div class="fact">
+        <dt class="label">Status</dt>
+        <dd>{status}</dd>
+      </div>
+    )}
+
+    {links.length > 0 && (
+      <div class="fact fact--links">
+        <dt class="label">Links</dt>
+        <dd>
+          {links.map((link) => (
+            <a
+              href={link.href}
+              class="link-plain"
+              target={link.external ? "_blank" : undefined}
+              rel={link.external ? "noopener noreferrer" : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </dd>
+      </div>
+    )}
+
+    <div class="fact fact--stack">
+      <dt class="label">Stack</dt>
+      <dd>
+        <ul class="tag-row" role="list">
+          {stack.map((tech) => <li class="tag">{tech}</li>)}
+        </ul>
+      </dd>
+    </div>
+  </dl>
+</aside>
+
+<style>
+  /* 20px inset inside the board's 216px column. */
+  .facts {
+    border-left: var(--rule);
+    padding-left: 2.9%;
+  }
+
+  .facts-heading {
+    margin-bottom: 1.25rem;
+  }
+
+  .facts-list {
+    display: grid;
+    gap: 1.15rem;
+  }
+
+  .fact dd {
+    margin-top: 0.3rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  .fact--links dd {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .fact--stack dd {
+    margin-top: 0.5rem;
+  }
+
+  /* Mobile: a boxed two-column grid that sits above the prose. */
+  @media (max-width: 860px) {
+    .facts {
+      border: var(--rule);
+      border-radius: 2px;
+      padding: 1.1rem 1.15rem;
+    }
+
+    .facts-heading {
+      display: none;
+    }
+
+    .facts-list {
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem 1.25rem;
+    }
+
+    .fact--links,
+    .fact--stack {
+      grid-column: 1 / -1;
+    }
+
+    .fact--links dd {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 1.1rem;
+    }
+  }
+</style>

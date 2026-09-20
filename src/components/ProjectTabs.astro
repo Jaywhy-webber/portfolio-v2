@@ -1,0 +1,202 @@
+---
+import CopyButton from "./CopyButton.astro";
+import type { DemoTarget } from "../lib/demo";
+
+interface Props {
+  repoUrl: string;
+  demoTarget: DemoTarget | null;
+  hasReadme: boolean;
+  /** Command offered by "Copy install" on the Readme tab. */
+  installCommand: string;
+}
+
+const { repoUrl, demoTarget, hasReadme, installCommand } = Astro.props;
+---
+
+<div class="tab-bar">
+  <div class="tab-list" role="tablist" aria-label="Project views">
+    <button
+      type="button"
+      role="tab"
+      id="tab-details"
+      class="tab tab--active"
+      data-tab="details"
+      aria-selected="true"
+      aria-controls="panel-details"
+    >
+      More details
+    </button>
+
+    {hasReadme && (
+      <button
+        type="button"
+        role="tab"
+        id="tab-readme"
+        class="tab"
+        data-tab="readme"
+        aria-selected="false"
+        aria-controls="panel-readme"
+      >
+        Readme
+      </button>
+    )}
+  </div>
+
+  <div class="tab-actions" data-tab-actions="details">
+    <a href={repoUrl} class="btn btn--sm" target="_blank" rel="noopener noreferrer">GitHub</a>
+    {demoTarget && (
+      <button
+        type="button"
+        class="btn btn--filled btn--sm"
+        data-demo-src={demoTarget.src}
+        data-demo-title={demoTarget.title}
+      >
+        Launch demo
+      </button>
+    )}
+  </div>
+
+  {hasReadme && (
+    <div class="tab-actions" data-tab-actions="readme" hidden>
+      <CopyButton value={installCommand} label="Copy install" class="btn--sm" />
+      <a href={repoUrl} class="btn btn--sm" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  )}
+</div>
+
+<div class="tab-panels">
+  <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" data-tab-panel="details">
+    <slot name="details" />
+  </div>
+
+  {hasReadme && (
+    <div
+      role="tabpanel"
+      id="panel-readme"
+      aria-labelledby="tab-readme"
+      data-tab-panel="readme"
+      hidden
+    >
+      <slot name="readme" />
+    </div>
+  )}
+</div>
+
+<script>
+  type TabName = "details" | "readme";
+
+  function setTab(name: TabName, pushHash: boolean) {
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-tab]"));
+    if (tabs.length === 0) return;
+    if (!tabs.some((tab) => tab.dataset.tab === name)) name = "details";
+
+    tabs.forEach((tab) => {
+      const active = tab.dataset.tab === name;
+      tab.classList.toggle("tab--active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-tab-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.tabPanel !== name;
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-tab-actions]").forEach((group) => {
+      group.hidden = group.dataset.tabActions !== name;
+    });
+
+    if (pushHash) {
+      const hash = name === "readme" ? "#readme" : "";
+      // Keep the tab linkable without adding a history entry per click.
+      history.replaceState(null, "", `${location.pathname}${location.search}${hash}`);
+    }
+  }
+
+  function initTabs() {
+    const tabs = document.querySelectorAll<HTMLButtonElement>("[data-tab]");
+    if (tabs.length === 0) return;
+
+    tabs.forEach((tab) => {
+      if (tab.dataset.tabReady === "true") return;
+      tab.dataset.tabReady = "true";
+      tab.addEventListener("click", () => {
+        setTab(tab.dataset.tab as TabName, true);
+        // Switching panels while scrolled deep into the old one would strand
+        // the reader mid-way down the new one.
+        const bar = document.querySelector<HTMLElement>(".tab-bar");
+        if (bar && bar.getBoundingClientRect().top < 0) {
+          bar.scrollIntoView({ block: "start" });
+        }
+      });
+    });
+
+    setTab(location.hash === "#readme" ? "readme" : "details", false);
+  }
+
+  document.addEventListener("astro:page-load", initTabs);
+  window.addEventListener("hashchange", () => {
+    setTab(location.hash === "#readme" ? "readme" : "details", false);
+  });
+</script>
+
+<style>
+  .tab-bar {
+    scroll-margin-top: calc(var(--header-height) + 1rem);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    padding-block: 0.85rem;
+    border-bottom: var(--rule);
+  }
+
+  /* 24px between tabs in the board's 688px column. */
+  .tab-list {
+    display: flex;
+    gap: 2.4rem;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    padding: 0 0 0.3rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .tab:hover {
+    color: var(--color-text);
+  }
+
+  .tab--active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  @media (max-width: 640px) {
+    .tab-bar {
+      gap: 0.9rem;
+    }
+
+    .tab-actions {
+      width: 100%;
+    }
+
+    .tab-actions > * {
+      flex: 1;
+    }
+  }
+</style>

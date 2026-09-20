@@ -1,0 +1,84 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import ExperienceRow from "../components/ExperienceRow.astro";
+import { getCollection, render, type CollectionEntry } from "astro:content";
+
+const entries = (await getCollection("experience")).sort(
+  (a: CollectionEntry<"experience">, b: CollectionEntry<"experience">) =>
+    a.data.sortOrder - b.data.sortOrder,
+);
+
+const rows = await Promise.all(
+  entries.map(async (entry: CollectionEntry<"experience">) => ({
+    entry,
+    Content: (await render(entry)).Content,
+  })),
+);
+
+function relatedHref(ids: string[]): string | undefined {
+  if (ids.length === 0) return undefined;
+  return ids.length === 1 ? `/projects/${ids[0]}/` : "/projects";
+}
+---
+
+<PageLayout
+  title="Work — Jerome Yeoh"
+  description="Roles and education — the experience behind the projects."
+  activePath="/work"
+>
+  <div class="shell page-top">
+    <SectionHeader title="Experience" meta="Roles &amp; education" as="h1" />
+
+    {rows.length > 0 ? (
+      <div class="rows">
+        {rows.map(({ entry, Content }) => (
+          <ExperienceRow
+            dateRange={entry.data.dateRange}
+            dateNote={entry.data.dateNote}
+            title={entry.data.title}
+            org={entry.data.org}
+            tags={entry.data.tags}
+            relatedHref={relatedHref(entry.data.relatedProjects)}
+          >
+            <Content />
+          </ExperienceRow>
+        ))}
+      </div>
+    ) : (
+      <p class="empty">
+        No entries are published here yet — the full history is in the résumé.
+      </p>
+    )}
+
+    <div class="work-foot">
+      <a href="/resume.pdf" class="btn btn--filled" download>Download résumé</a>
+      <a href="/projects" class="link-plain link-quiet">See all projects</a>
+    </div>
+  </div>
+</PageLayout>
+
+<style>
+  .page-top {
+    padding-top: 2.75rem;
+  }
+
+  .rows {
+    margin-top: 0.25rem;
+  }
+
+  .empty {
+    padding-block: 3rem;
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+    border-bottom: var(--rule);
+  }
+
+  .work-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+</style>

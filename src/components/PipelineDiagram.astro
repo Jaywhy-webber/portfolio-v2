@@ -1,0 +1,188 @@
+---
+import type { PipelineStep } from "../data/steps";
+
+interface Props {
+  steps: PipelineStep[];
+  /** Accessible name for the diagram. */
+  label: string;
+  /**
+   * Height of the diagram band, as a ratio of the board's 688px content column.
+   * 140px for the 7-step workflow, 132px for the 4-step pipeline.
+   */
+  bandRatio?: number;
+}
+
+const { steps, label, bandRatio = 140 / 688 } = Astro.props;
+// As an aspect ratio, so the band keeps the board's height-to-width relationship
+// at any shell width. Content taller than this still grows the row rather than
+// being clipped.
+const bandAspect = (1 / bandRatio).toFixed(3);
+
+/** Splits "text `code` text" into alternating plain / code segments. */
+function segments(text: string) {
+  return text.split("`").map((value, i) => ({ value, code: i % 2 === 1 }));
+}
+---
+
+<ol
+  class="pipeline"
+  role="list"
+  aria-label={label}
+  style={`--step-count: ${steps.length}; --band-aspect: ${bandAspect}`}
+>
+  {steps.map((step, i) => (
+    <li class="step">
+      <span class="step-node" aria-hidden="true">{i + 1}</span>
+      <div class="step-body">
+        <strong class="step-label">{step.label}</strong>
+        <span class="step-text">
+          {segments(step.description).map((seg) =>
+            seg.code ? <code>{seg.value}</code> : <Fragment>{seg.value}</Fragment>,
+          )}
+        </span>
+      </div>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .pipeline {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(var(--step-count), minmax(0, 1fr));
+    position: relative;
+    aspect-ratio: var(--band-aspect);
+  }
+
+  /* Connector through the centre of every node. */
+  .pipeline::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: calc(50% / var(--step-count));
+    right: calc(50% / var(--step-count));
+    height: 1px;
+    background: var(--color-border-strong);
+    transform: translateY(-50%);
+  }
+
+  .step {
+    display: grid;
+    grid-template-rows: 1fr auto 1fr;
+    align-items: center;
+    text-align: center;
+    padding-inline: 0.6%;
+  }
+
+  /* 26px node in the board's 688px column. */
+  .step-node {
+    grid-row: 2;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-inline: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  /*
+   * Odd steps sit above the line, even steps below. Both align to the outer
+   * edge of their band so all seven labels land on two clean horizontal
+   * bands — bottom-aligning the upper row to the connector would stagger the
+   * labels by however long each description runs.
+   */
+  .step:nth-child(odd) .step-body {
+    grid-row: 1;
+    align-self: start;
+    padding-bottom: 1rem;
+  }
+
+  .step:nth-child(even) .step-body {
+    grid-row: 3;
+    align-self: start;
+    padding-top: 1rem;
+  }
+
+  .step-label {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .step-text {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .step-text code {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 860px) {
+    .pipeline {
+      grid-template-columns: 1fr;
+      aspect-ratio: auto;
+    }
+
+    /* Connector becomes a vertical rail through the node column. */
+    .pipeline::before {
+      top: 1rem;
+      bottom: 1rem;
+      left: 1.3rem;
+      right: auto;
+      width: 1px;
+      height: auto;
+      transform: none;
+    }
+
+    .step {
+      grid-template-rows: none;
+      grid-template-columns: 2.6rem minmax(0, 1fr);
+      column-gap: 1.1rem;
+      text-align: left;
+      padding: 0 0 1.75rem;
+    }
+
+    .step:last-child {
+      padding-bottom: 0;
+    }
+
+    .step-node {
+      grid-row: 1;
+      grid-column: 1;
+      margin: 0;
+    }
+
+    .step:nth-child(odd) .step-body,
+    .step:nth-child(even) .step-body {
+      grid-row: 1;
+      grid-column: 2;
+      align-self: center;
+      padding: 0;
+    }
+
+    .step-text {
+      font-size: 0.8125rem;
+    }
+  }
+</style>

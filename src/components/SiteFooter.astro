@@ -1,0 +1,88 @@
+---
+import IconLink from "./IconLink.astro";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="shell footer-inner">
+    <span class="footer-name">Jerome Yeoh &middot; {year}</span>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/resume.pdf" class="link-plain link-quiet" download>Résumé</a>
+
+      <IconLink
+        href="https://github.com/Jaywhy-webber"
+        icon="github"
+        label="GitHub"
+        tipValue="github.com/Jaywhy-webber"
+        tipHint="(opens in a new tab)"
+        external
+        variant="quiet"
+        tipAlign="end"
+        size="1.05rem"
+      />
+
+      <IconLink
+        href="https://www.linkedin.com/in/jerome-yeoh-35a738217"
+        icon="linkedin"
+        label="LinkedIn"
+        tipValue="linkedin.com/in/jerome-yeoh-35a738217"
+        tipHint="(opens in a new tab)"
+        external
+        variant="quiet"
+        tipAlign="end"
+        size="1.05rem"
+      />
+
+      <IconLink
+        href="mailto:jeromeyeohhc@gmail.com"
+        icon="mail"
+        label="Email"
+        tipValue="jeromeyeohhc@gmail.com"
+        tipHint="(opens your mail app)"
+        variant="quiet"
+        tipAlign="end"
+        size="1.05rem"
+      />
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    flex-shrink: 0;
+    border-top: var(--rule);
+    padding-block: 1.75rem;
+    /* Clear the mobile bottom bar. */
+    margin-bottom: var(--footer-clearance, 0);
+  }
+
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-name {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 860px) {
+    .site-footer {
+      --footer-clearance: var(--mobile-nav-height);
+    }
+  }
+</style>

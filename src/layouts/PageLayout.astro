@@ -1,0 +1,28 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import MobileNav from "../components/MobileNav.astro";
+import DemoOverlay from "../components/DemoOverlay.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogType?: string;
+  /** Override which nav item reads as current. */
+  activePath?: string;
+}
+
+const { title, description, ogImage, ogType, activePath } = Astro.props;
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} ogType={ogType}>
+  <SiteHeader activePath={activePath} />
+  <main class="site-main">
+    <slot />
+  </main>
+  <SiteFooter />
+  <MobileNav activePath={activePath} />
+  <DemoOverlay />
+</BaseLayout>

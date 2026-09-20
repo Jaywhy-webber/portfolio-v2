@@ -1,0 +1,148 @@
+---
+/**
+ * Sticky bottom bar, shown in place of the primary nav under 860px.
+ * The handoff drew four slots but left the count open once Work and Projects
+ * split; there are exactly five destinations, so it runs five.
+ * Résumé stays in the header on mobile.
+ */
+interface Props {
+  activePath?: string;
+}
+
+const { activePath = Astro.url.pathname } = Astro.props;
+
+const items = [
+  { label: "Work", href: "/work", icon: "briefcase" },
+  { label: "Projects", href: "/projects", icon: "layers" },
+  { label: "Research", href: "/research", icon: "chart" },
+  { label: "Workflow", href: "/workflow", icon: "branch" },
+  { label: "Pipeline", href: "/pipeline", icon: "funnel" },
+] as const;
+
+function isActive(href: string): boolean {
+  return activePath === href || activePath.startsWith(`${href}/`);
+}
+---
+
+<nav class="mobile-nav" aria-label="Sections">
+  <ul role="list">
+    {items.map((item) => (
+      <li>
+        <a
+          href={item.href}
+          class:list={["mobile-link", { "mobile-link--active": isActive(item.href) }]}
+          aria-current={isActive(item.href) ? "page" : undefined}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            {item.icon === "briefcase" && (
+              <Fragment>
+                <rect x="3" y="7" width="18" height="13" rx="2" />
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </Fragment>
+            )}
+            {item.icon === "layers" && (
+              <Fragment>
+                <path d="M3 8h18" />
+                <path d="M3 13h18" />
+                <path d="M3 18h18" />
+              </Fragment>
+            )}
+            {item.icon === "chart" && (
+              <Fragment>
+                <path d="M4 20V10" />
+                <path d="M10 20V4" />
+                <path d="M16 20v-7" />
+                <path d="M22 20H2" />
+              </Fragment>
+            )}
+            {item.icon === "branch" && (
+              <Fragment>
+                <circle cx="6" cy="6" r="2.4" />
+                <circle cx="18" cy="6" r="2.4" />
+                <circle cx="12" cy="18" r="2.4" />
+                <path d="M6 8.4v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" />
+                <path d="M12 12.4v3.2" />
+              </Fragment>
+            )}
+            {item.icon === "funnel" && (
+              <Fragment>
+                <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+              </Fragment>
+            )}
+          </svg>
+          <span>{item.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 70;
+    height: var(--mobile-nav-height);
+    background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: var(--rule);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav ul {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: var(--mobile-nav-height);
+  }
+
+  .mobile-nav li {
+    display: flex;
+  }
+
+  .mobile-nav li + li {
+    border-left: var(--rule);
+  }
+
+  .mobile-link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    color: var(--color-text-muted);
+  }
+
+  .mobile-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mobile-link span {
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mobile-link--active {
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 860px) {
+    .mobile-nav {
+      display: block;
+    }
+  }
+</style>

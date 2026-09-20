@@ -1,0 +1,203 @@
+---
+import { resolvePreview } from "../lib/preview";
+import { demoTargetFor } from "../lib/demo";
+import type { z } from "zod";
+import type { previewSchema, demoSchema } from "../schemas/projects";
+
+interface Props {
+  index: string;
+  title: string;
+  summary: string;
+  stack: string[];
+  preview: z.infer<typeof previewSchema>;
+  demo: z.infer<typeof demoSchema>;
+  href: string;
+}
+
+const { index, title, summary, stack, preview, demo, href } = Astro.props;
+
+const resolved = resolvePreview(preview);
+const thumbSrc = resolved.kind === "video" ? resolved.poster : resolved.staticSrc;
+const demoTarget = demoTargetFor({ title, demo });
+---
+
+<article class="project-row">
+  <span class="index-numeral row-index" aria-hidden="true">{index}</span>
+
+  <div class="row-thumb">
+    <img src={thumbSrc} alt={`${title} preview`} loading="lazy" width="440" height="248" />
+  </div>
+
+  <h3 class="row-title">{title}</h3>
+
+  <div class="row-body">
+    <p class="row-summary">{summary}</p>
+
+    <ul class="tag-row row-tags" role="list">
+      {stack.map((tech) => <li class="tag">{tech}</li>)}
+    </ul>
+
+    <div class="row-actions">
+      {demoTarget && (
+        <button
+          type="button"
+          class="link-plain row-demo"
+          data-demo-src={demoTarget.src}
+          data-demo-title={demoTarget.title}
+        >
+          Live demo
+        </button>
+      )}
+      <a href={href} class="link-plain link-quiet row-details">More details</a>
+    </div>
+  </div>
+</article>
+
+<style>
+  /*
+   * Column ratios come from the wireframe board, whose content column is 688px:
+   * 38px index / 22px gap / 220px thumbnail / 22px gap / 386px body.
+   * Expressed as percentages so the proportions hold at any shell width.
+   */
+  .project-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5.52% 31.98% minmax(0, 1fr);
+    grid-template-areas:
+      "index thumb title"
+      "index thumb body";
+    grid-template-rows: auto 1fr;
+    column-gap: 3.2%;
+    align-items: start;
+    padding-block: 1.85rem;
+    border-bottom: var(--rule);
+    transition: background 0.18s ease;
+  }
+
+  .project-row:hover {
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  }
+
+  .row-index {
+    grid-area: index;
+    padding-top: 0.3rem;
+  }
+
+  .row-thumb {
+    grid-area: thumb;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: var(--rule);
+    border-radius: 2px;
+    background: var(--color-surface-alt);
+  }
+
+  .row-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+
+  .project-row:hover .row-thumb img {
+    transform: scale(1.03);
+  }
+
+  .row-title {
+    grid-area: title;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
+  .row-body {
+    grid-area: body;
+  }
+
+  .row-summary {
+    margin-top: 0.4rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 58ch;
+  }
+
+  .row-tags {
+    margin-top: 0.85rem;
+  }
+
+  .row-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.1rem;
+  }
+
+  /* The whole row navigates to the detail page... */
+  .row-details::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  /* ...but the demo trigger sits above that layer, so it never navigates. */
+  .row-demo {
+    position: relative;
+    z-index: 1;
+    background: none;
+    border: none;
+    border-bottom: 1px solid transparent;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-row,
+    .row-thumb img {
+      transition: none;
+    }
+
+    .project-row:hover .row-thumb img {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 860px) {
+    .project-row {
+      grid-template-columns: 2.25rem minmax(0, 1fr);
+      /* Percentage columns are a desktop-only concern; the stacked mobile
+         layout reverts to fixed values. */
+      grid-template-areas:
+        "index title"
+        "thumb thumb"
+        "body  body";
+      grid-template-rows: auto auto auto;
+      column-gap: 0.9rem;
+      row-gap: 0.9rem;
+      padding-block: 1.5rem;
+    }
+
+    .row-index {
+      padding-top: 0.25rem;
+    }
+
+    .row-title {
+      font-size: 1.1rem;
+    }
+
+    .row-summary {
+      margin-top: 0;
+    }
+
+    /* Tags are dropped on narrow screens — summary and actions stay. */
+    .row-tags {
+      display: none;
+    }
+
+    .row-actions {
+      margin-top: 0.9rem;
+    }
+  }
+</style>

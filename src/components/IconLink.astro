@@ -1,0 +1,53 @@
+---
+import Icon from "./Icon.astro";
+import type { IconName } from "./Icon.astro";
+
+interface Props {
+  href: string;
+  icon: IconName;
+  /** Accessible name — shipped visually hidden, since the glyph carries no text. */
+  label: string;
+  /** Destination shown in the tooltip, e.g. "github.com/name". */
+  tipValue: string;
+  /** Prompt under the value, e.g. "(opens in a new tab)". */
+  tipHint: string;
+  /** Adds target/rel. */
+  external?: boolean;
+  /** "btn" is a bordered action-row button; "quiet" is a bare footer glyph. */
+  variant?: "btn" | "quiet";
+  /** Right-align the tooltip so it cannot run off the edge of the viewport. */
+  tipAlign?: "center" | "end";
+  /** Icon size; the footer runs smaller than the hero. */
+  size?: string;
+}
+
+const {
+  href,
+  icon,
+  label,
+  tipValue,
+  tipHint,
+  external = false,
+  variant = "btn",
+  tipAlign = "center",
+  size,
+}: Props = Astro.props;
+---
+
+<a
+  href={href}
+  class:list={[
+    "has-tip",
+    variant === "btn" ? "btn btn--icon" : "icon-link",
+  ]}
+  target={external ? "_blank" : undefined}
+  rel={external ? "noopener noreferrer" : undefined}
+>
+  <Icon name={icon} size={size} />
+  <span class="visually-hidden">{label}</span>
+
+  <span class:list={["tip", tipAlign === "end" && "tip--end"]} aria-hidden="true">
+    <span class="tip__value">{tipValue}</span>
+    <span class="tip__hint">{tipHint}</span>
+  </span>
+</a>

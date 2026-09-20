@@ -1,0 +1,478 @@
+/* ==========================================================================
+   Design tokens
+   Warm paper, near-black ink, a single deep accent. Token names match the
+   v1 site so anything carried over keeps resolving.
+
+   The site is light only — it does not follow the OS colour scheme.
+   ========================================================================== */
+
+:root {
+  /* Tells the browser to paint form controls, scrollbars and the canvas light
+     even when the OS is set to dark. */
+  color-scheme: light;
+
+  --color-bg: #f7f5f0;
+  --color-surface: #fffefb;
+  --color-surface-alt: #efece4;
+  --color-text: #17150f;
+  --color-text-muted: #6e685d;
+  --color-border: #dcd7cb;
+  --color-border-strong: #b9b2a3;
+  --color-accent: #1c4f4a;
+  --color-accent-hover: #123834;
+  --color-accent-soft: #e3ece9;
+  --color-on-accent: #fffefb;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  /* Display is Inter too, kept as its own token so headings can be
+     retuned independently of body copy. */
+  --font-display: "Inter", system-ui, -apple-system, sans-serif;
+  /* Reserved for genuine code: readme fences, inline filenames,
+     sample output. */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --shell-max: 1160px;
+  --shell-gutter: 1.75rem;
+  --header-height: 76px;
+  --mobile-nav-height: 58px;
+
+  --rule: 1px solid var(--color-border);
+}
+
+/* ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-padding-top: calc(var(--header-height) + 1rem);
+}
+
+body {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
+  display: block;
+}
+
+/* Lists used as navigation or tag rows carry no markers. */
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* --- Layout primitives --------------------------------------------------- */
+
+.shell {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  padding-inline: var(--shell-gutter);
+}
+
+.site-main {
+  flex: 1 0 auto;
+  padding-bottom: 4rem;
+}
+
+/* --- Type ---------------------------------------------------------------- */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* Inter wants tighter tracking than a serif at display sizes. */
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.index-numeral {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Controls ------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.05rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn:hover {
+  border-color: var(--color-text);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.btn--filled {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.btn--filled:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--color-on-accent);
+}
+
+.btn--sm {
+  padding: 0.38rem 0.8rem;
+  font-size: 0.75rem;
+}
+
+/*
+ * Icon-only button. The inline padding squares it against the text buttons'
+ * height (0.8125rem text on a 1.6 line-height, plus the shared block padding),
+ * so an icon and a label button sit on the same baseline in one row.
+ */
+.btn--icon {
+  padding-inline: 0.6rem;
+}
+
+/* --- Tooltip -------------------------------------------------------------
+   Shared by every icon-only control. The trigger carries .has-tip; the tip
+   itself is aria-hidden, since the trigger already has a visually-hidden
+   label and would otherwise be announced twice.
+   ------------------------------------------------------------------------ */
+
+.has-tip {
+  position: relative;
+}
+
+.tip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 2px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+}
+
+/* Caret anchoring the tip to its trigger. */
+.tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--color-text);
+}
+
+/* Centred tips would run off-screen near the right edge, so right-aligned
+   rows (the footer) anchor theirs to the trigger's trailing edge instead. */
+.tip--end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.tip--end::after {
+  left: auto;
+  right: 0.7rem;
+  transform: none;
+}
+
+.has-tip:hover > .tip,
+.has-tip:focus-visible > .tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tip__value {
+  font-weight: 500;
+}
+
+.tip__hint {
+  color: color-mix(in srgb, var(--color-bg) 62%, transparent);
+}
+
+/* Quiet icon link for the footer — glyph only, no chrome. */
+.icon-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+
+.icon-link:hover {
+  color: var(--color-text);
+}
+
+/* Plain text link — no arrow glyphs, per the handoff */
+.link-plain {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-accent);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.link-plain:hover {
+  border-bottom-color: currentColor;
+}
+
+.link-quiet {
+  color: var(--color-text-muted);
+}
+
+.link-quiet:hover {
+  color: var(--color-text);
+}
+
+/* --- Tags ---------------------------------------------------------------- */
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.tag {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* --- Prose --------------------------------------------------------------- */
+
+.prose {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.prose > * + * {
+  margin-top: 1.1rem;
+}
+
+.prose h2 {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-top: 2.5rem;
+}
+
+.prose h2:first-child {
+  margin-top: 0;
+}
+
+.prose h2 + * {
+  margin-top: 0.6rem;
+}
+
+.prose h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2rem;
+}
+
+.prose p {
+  color: var(--color-text-muted);
+}
+
+.prose strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.prose li + li {
+  margin-top: 0.35rem;
+}
+
+.prose a {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.8125em;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 0.1em 0.35em;
+}
+
+.prose pre {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose blockquote {
+  border-left: 2px solid var(--color-border-strong);
+  padding-left: 1rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.45rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--color-surface-alt);
+  font-weight: 600;
+}
+
+.prose img {
+  border: var(--rule);
+  border-radius: 2px;
+}
+
+.prose hr {
+  border: none;
+  border-top: var(--rule);
+}
+
+/* --- Utilities ----------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body.overlay-open {
+  overflow: hidden;
+}
+
+/* --- Motion ------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

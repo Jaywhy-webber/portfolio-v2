@@ -1,0 +1,133 @@
+---
+interface Props {
+  dateRange: string;
+  dateNote?: string;
+  title: string;
+  org: string;
+  tags: string[];
+  /**
+   * Where "Related projects" points. The wireframe draws one plain link, so a
+   * single related project links straight to it and several link to /projects.
+   * Omit to hide the link.
+   */
+  relatedHref?: string;
+}
+
+const { dateRange, dateNote, title, org, tags, relatedHref } = Astro.props;
+---
+
+<article class="experience-row">
+  <div class="entry-date">
+    <span class="date-range">{dateRange}</span>
+    {dateNote && <span class="date-note">{dateNote}</span>}
+  </div>
+
+  <div class="entry-body">
+    <h3 class="entry-heading">
+      <span class="entry-title">{title}</span>
+      <span class="entry-org">{org}</span>
+    </h3>
+
+    <div class="entry-description prose">
+      <slot />
+    </div>
+
+    {tags.length > 0 && (
+      <ul class="tag-row entry-tags" role="list">
+        {tags.map((tag) => <li class="tag">{tag}</li>)}
+      </ul>
+    )}
+
+    {relatedHref && (
+      <a href={relatedHref} class="link-plain entry-related">Related projects</a>
+    )}
+  </div>
+</article>
+
+<style>
+  /* Board ratios: 96px date column and a 22px gap in a 688px content column. */
+  .experience-row {
+    display: grid;
+    grid-template-columns: 13.95% minmax(0, 1fr);
+    column-gap: 3.2%;
+    align-items: start;
+    padding-block: 1.85rem;
+    border-bottom: var(--rule);
+  }
+
+  .entry-date {
+    display: grid;
+    gap: 0.2rem;
+    padding-top: 0.2rem;
+  }
+
+  .date-range {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .date-note {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    opacity: 0.8;
+  }
+
+  .entry-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.65rem;
+  }
+
+  .entry-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+
+  .entry-org {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+
+  .entry-description {
+    margin-top: 0.5rem;
+    max-width: 68ch;
+  }
+
+  .entry-description :global(p) {
+    font-size: 0.875rem;
+  }
+
+  .entry-tags {
+    margin-top: 0.85rem;
+  }
+
+  .entry-related {
+    display: inline-block;
+    margin-top: 0.95rem;
+  }
+
+  @media (max-width: 640px) {
+    .experience-row {
+      grid-template-columns: 1fr;
+      row-gap: 0.65rem;
+    }
+
+    .entry-date {
+      grid-auto-flow: column;
+      justify-content: start;
+      align-items: baseline;
+      gap: 0.75rem;
+      padding-top: 0;
+    }
+  }
+</style>
