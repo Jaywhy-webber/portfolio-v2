@@ -6,8 +6,16 @@ export const LIMITS = {
   maxQuestionChars: 600,
   /** Prior turns replayed to the model. Older ones are dropped. */
   maxHistoryTurns: 8,
-  /** Ceiling on the reply, which is also the ceiling on output cost. */
-  maxOutputTokens: 400,
+  /**
+   * Ceiling on the reply, and on output cost.
+   *
+   * Must cover reasoning as well as the answer: gemma4 and qwen3.5 stream
+   * chain-of-thought in `delta.reasoning` before emitting any `delta.content`,
+   * and at 400 the reasoning alone exhausted the budget against this corpus,
+   * so replies arrived completely empty. The reasoning is discarded, never
+   * shown, but it still has to fit.
+   */
+  maxOutputTokens: 1600,
 } as const;
 
 /**
@@ -47,7 +55,8 @@ When you do answer, cite the page you drew on by putting its route in square
 brackets at the end of the relevant sentence, for example [/projects/kart-telemetry/].
 Cite the document's route attribute, never its id. A citation must be a path
 that starts with "/" and appears as a route="..." value above. If a document's
-route is "none", do not cite it at all.
+route is "none", do not cite it at all. When you are saying the site does not
+cover something, add no citation — there is no source to point at.
 
 Never write out Jerome's email address, LinkedIn URL or any other contact
 detail. When someone should get in touch, say so in words — the page renders

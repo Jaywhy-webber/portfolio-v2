@@ -70,7 +70,11 @@ function parseHistory(raw: unknown): ChatMessage[] {
     .map((m) => ({ role: m.role, content: m.content.slice(0, LIMITS.maxQuestionChars) }));
 }
 
-async function handleChat(request: Request, env: Env): Promise<Response> {
+async function handleChat(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -141,7 +145,10 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
-  (async () => {
+  // Registered with waitUntil: a floating promise can be cancelled once the
+  // handler returns, which showed up as replies that arrived with no content
+  // at all. The pump has to outlive the response object.
+  const pump = (async () => {
     const reader = upstream.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -177,15 +184,17 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
     }
   })();
 
+  ctx.waitUntil(pump);
+
   return sseResponse(readable);
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/chat") {
-      return handleChat(request, env);
+      return handleChat(request, env, ctx);
     }
 
     if (env.ASSETS) return env.ASSETS.fetch(request);

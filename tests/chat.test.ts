@@ -116,7 +116,10 @@ describe("limits", () => {
     expect(LIMITS.maxHistoryTurns).toBeGreaterThan(0);
     expect(LIMITS.maxOutputTokens).toBeGreaterThan(0);
     // Output tokens are the per-request cost ceiling; keep it deliberate.
-    expect(LIMITS.maxOutputTokens).toBeLessThanOrEqual(800);
+    // Reasoning models spend this budget before emitting any content, so it
+    // has to be generous enough that an answer still fits underneath it.
+    expect(LIMITS.maxOutputTokens).toBeGreaterThanOrEqual(1200);
+    expect(LIMITS.maxOutputTokens).toBeLessThanOrEqual(2000);
   });
 });
 
