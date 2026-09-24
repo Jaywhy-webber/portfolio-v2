@@ -229,6 +229,18 @@ describe("chat widget", () => {
     expect(widget()).toMatch(/prefers-reduced-motion[\s\S]*?chat-typing i[\s\S]*?animation: none/);
   });
 
+  test("the bubble icon uses arcs a renderer can actually draw", () => {
+    const icon = readFileSync("src/components/Icon.astro", "utf-8");
+
+    // The original circular bubble asked for a 17.24 chord at r=8. SVG caps
+    // a chord at 2r and silently inflates the radii to compensate, which
+    // warped one side of the shape.
+    expect(icon).not.toContain("M21 12a8 8 0 0 1-8 8H8l-4 3v-4.3");
+
+    // Rounded rectangle: every corner is a 2.83 chord at r=2, well inside 4.
+    expect(icon).toContain("M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z");
+  });
+
   test("invites the visitor to chat, on every page", () => {
     for (const route of ["dist/index.html", "dist/work/index.html", "dist/research/index.html"]) {
       const html = readFileSync(route, "utf-8");
