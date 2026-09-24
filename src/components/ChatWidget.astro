@@ -12,21 +12,41 @@ import CopyButton from "./CopyButton.astro";
 ---
 
 <div class="chat" id="chat-widget" transition:persist>
-  <button
-    type="button"
-    class="chat-bubble"
-    id="chat-toggle"
-    aria-expanded="false"
-    aria-controls="chat-panel"
-  >
-    <span class="chat-bubble__open" data-chat-glyph="closed">
-      <Icon name="chat" size="1.35rem" />
-    </span>
-    <span class="chat-bubble__close" data-chat-glyph="open" hidden>
-      <Icon name="close" size="1.35rem" />
-    </span>
-    <span class="visually-hidden">Ask about Jerome's work</span>
-  </button>
+  <div class="chat-launcher">
+    <!--
+      Invitation beside the bubble. An icon on its own doesn't say what it
+      does, so this says it once and then gets out of the way for the session.
+    -->
+    <div class="chat-invite" id="chat-invite" hidden>
+      <button type="button" class="chat-invite__cta" data-invite-open>
+        Chat with me to know more about Jerome
+      </button>
+      <button
+        type="button"
+        class="chat-invite__dismiss"
+        data-invite-dismiss
+        aria-label="Dismiss this message"
+      >
+        <Icon name="close" size="0.8rem" />
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="chat-bubble"
+      id="chat-toggle"
+      aria-expanded="false"
+      aria-controls="chat-panel"
+    >
+      <span class="chat-bubble__open" data-chat-glyph="closed">
+        <Icon name="chat" size="1.35rem" />
+      </span>
+      <span class="chat-bubble__close" data-chat-glyph="open" hidden>
+        <Icon name="close" size="1.35rem" />
+      </span>
+      <span class="visually-hidden">Ask about Jerome's work</span>
+    </button>
+  </div>
 
   <section class="chat-panel" id="chat-panel" aria-label="Ask about Jerome's work" hidden>
     <header class="chat-head">
@@ -78,6 +98,7 @@ import CopyButton from "./CopyButton.astro";
 
 <script>
   const STORAGE_KEY = "chat-history";
+  const INVITE_KEY = "chat-invite-seen";
   const MAX_TURNS = 8;
 
   interface Turn {
@@ -177,7 +198,40 @@ import CopyButton from "./CopyButton.astro";
       else toggle!.focus();
     }
 
-    toggle.addEventListener("click", () => setOpen(panel.hidden));
+    const invite = document.getElementById("chat-invite");
+
+    function dismissInvite() {
+      if (!invite || invite.hidden) return;
+      invite.hidden = true;
+      try {
+        sessionStorage.setItem(INVITE_KEY, "1");
+      } catch {
+        /* blocked storage just means it may reappear next page */
+      }
+    }
+
+    // Held back briefly so it doesn't compete with the page painting, and
+    // never shown to someone who has already opened the chat or waved it away.
+    if (invite && history.length === 0) {
+      let seen = false;
+      try {
+        seen = sessionStorage.getItem(INVITE_KEY) === "1";
+      } catch {
+        /* treat unreadable storage as unseen */
+      }
+      if (!seen) window.setTimeout(() => { if (panel.hidden) invite.hidden = false; }, 1200);
+    }
+
+    invite?.querySelector("[data-invite-dismiss]")?.addEventListener("click", dismissInvite);
+    invite?.querySelector("[data-invite-open]")?.addEventListener("click", () => {
+      dismissInvite();
+      setOpen(true);
+    });
+
+    toggle.addEventListener("click", () => {
+      dismissInvite();
+      setOpen(panel.hidden);
+    });
     widget.querySelectorAll("[data-chat-close]").forEach((el) =>
       el.addEventListener("click", () => setOpen(false)),
     );
@@ -269,6 +323,101 @@ import CopyButton from "./CopyButton.astro";
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
+  }
+
+  /* Invite and bubble sit on one row so the callout reads as coming from it. */
+  .chat-launcher {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .chat-invite {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    max-width: min(15rem, calc(100vw - 6.5rem));
+    padding: 0.55rem 0.35rem 0.55rem 0.8rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 2px;
+    background: var(--color-surface);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-text) 14%, transparent);
+    animation: chat-invite-in 0.28s ease-out both;
+  }
+
+  /* Tail pointing at the bubble, drawn as two triangles so the border shows. */
+  .chat-invite::before,
+  .chat-invite::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+  }
+
+  .chat-invite::before {
+    border-left-color: var(--color-border-strong);
+  }
+
+  .chat-invite::after {
+    margin-left: -1px;
+    border-left-color: var(--color-surface);
+  }
+
+  .chat-invite__cta {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .chat-invite__cta:hover {
+    color: var(--color-accent);
+  }
+
+  .chat-invite__dismiss {
+    flex-shrink: 0;
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0.1rem;
+    line-height: 0;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .chat-invite__dismiss:hover {
+    color: var(--color-text);
+  }
+
+  @keyframes chat-invite-in {
+    from {
+      opacity: 0;
+      transform: translateX(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* The global reduced-motion rule collapses the entrance to nothing, which
+     would leave it mid-slide. Land it in its final position instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .chat-invite {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .chat-bubble {

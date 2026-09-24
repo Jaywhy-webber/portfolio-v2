@@ -35,7 +35,7 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 133 tests, includes a real astro build
+npm run test        # vitest — 138 tests, includes a real astro build
 npm run typecheck   # astro check
 ```
 
@@ -106,6 +106,10 @@ wrangler secret put LLM_API_KEY
 - **The model never writes contact details.** The panel renders the copy-email control and
   the LinkedIn link itself, so the one thing that must be right can't come out wrong.
 
+A callout beside the bubble reads "Chat with me to know more about Jerome", because an icon
+on its own doesn't say what it does. It appears 1.2s after load, and it's gone for the rest
+of the session once it's dismissed or the chat is opened.
+
 Grounding cuts fabrication sharply, but it doesn't eliminate it. The panel carries a line that
 says so.
 
@@ -174,6 +178,10 @@ these cases apart:
   Check both again if you switch models.
 - **Wrangler starts on 8788 or 8789.** Something is still holding 8787, probably an old
   worker. Pin the port with `-- --port 8787` once it's free.
+- **A change to `src/` doesn't show up.** `wrangler dev` serves the built `./dist` and only
+  watches the Worker, so it never reruns the Astro build. Run `npm run build` (or restart
+  `npm run dev:worker`) after editing anything under `src/`. Use `npm run dev` instead when
+  you want hot reload and don't need the assistant.
 
 ## What changed from v1
 

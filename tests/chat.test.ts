@@ -229,6 +229,40 @@ describe("chat widget", () => {
     expect(widget()).toMatch(/prefers-reduced-motion[\s\S]*?chat-typing i[\s\S]*?animation: none/);
   });
 
+  test("invites the visitor to chat, on every page", () => {
+    for (const route of ["dist/index.html", "dist/work/index.html", "dist/research/index.html"]) {
+      const html = readFileSync(route, "utf-8");
+      expect(html, route).toContain("Chat with me to know more about Jerome");
+      expect(html, route).toContain('id="chat-invite"');
+    }
+  });
+
+  test("the invite starts hidden so it cannot flash before its delay", () => {
+    expect(readFileSync("dist/index.html", "utf-8")).toMatch(/id="chat-invite"[^>]*hidden/);
+  });
+
+  test("the invite can be waved away, and stays away for the session", () => {
+    const src = widget();
+    expect(src).toContain("data-invite-dismiss");
+    expect(src).toContain('aria-label="Dismiss this message"');
+    // Same storage policy as the transcript: gone when the tab closes.
+    expect(src).toContain("chat-invite-seen");
+    expect(src).not.toContain("localStorage");
+  });
+
+  test("opening the chat by any route dismisses the invite", () => {
+    const src = widget();
+    // Both the bubble and the invite's own call to action.
+    expect(src).toMatch(/toggle\.addEventListener\("click", \(\) => \{\s*dismissInvite\(\)/);
+    expect(src).toMatch(/data-invite-open[\s\S]*?dismissInvite\(\)[\s\S]*?setOpen\(true\)/);
+  });
+
+  test("the invite lands in place rather than freezing mid-slide", () => {
+    expect(widget()).toMatch(
+      /prefers-reduced-motion[\s\S]*?\.chat-invite[\s\S]*?animation: none/,
+    );
+  });
+
   test("history is session-scoped, so nothing about a visitor persists", () => {
     expect(widget()).toContain("sessionStorage");
     expect(widget()).not.toContain("localStorage");
