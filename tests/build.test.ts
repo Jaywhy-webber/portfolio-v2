@@ -289,6 +289,31 @@ describe("project detail", () => {
     expect(html).toMatch(/data-tab-panel="readme"[^>]*hidden/);
   });
 
+  test("the facts panel follows the reader down a long case study", () => {
+    // Component styles are inlined into the page, not the shared bundle.
+    const css = read("dist/projects/kart-telemetry/index.html");
+    // Sticky below the sticky header, so Stack and Links survive past the
+    // first screen of prose.
+    expect(css).toMatch(/\.facts\[data-astro-cid-[^\]]+\]\{[^}]*position:sticky/);
+    expect(css).toContain("var(--header-height) + 1.5rem");
+    // Sticky needs a grid item that doesn't stretch to fill the row.
+    expect(css).toMatch(/\.detail-body\[data-astro-cid-[^\]]+\]\{[^}]*align-items:start/);
+  });
+
+  test("the facts panel stops being sticky once it stacks on mobile", () => {
+    // Above the prose at that width, so there is nothing to stick beside.
+    const css = read("dist/projects/kart-telemetry/index.html");
+    expect(css).toMatch(/@media[^{]*max-width:860px[\s\S]*?\.facts\[[^\]]+\]\{[^}]*position:static/);
+  });
+
+  test("scrollbars are slimmed down but still visible", () => {
+    const css = readCss();
+    expect(css).toContain("scrollbar-width:thin");
+    // Not "none": an invisible scrollbar hides page length and can't be grabbed.
+    expect(css).not.toMatch(/html\{[^}]*scrollbar-width:none/);
+    expect(css).toMatch(/scrollbar-color:var\(--color-border-strong\)/);
+  });
+
   test("the case-study prose keeps its labelled blocks", () => {
     for (const id of PROJECT_IDS) {
       const html = read(`dist/projects/${id}/index.html`);

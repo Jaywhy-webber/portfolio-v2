@@ -75,6 +75,15 @@ const { role, timeline, status, stack, links } = Astro.props;
   .facts {
     border-left: var(--rule);
     padding-left: 2.9%;
+    /*
+     * A case study runs several screens; without this the facts scroll away
+     * after the first one and Stack and Links are gone for the rest of the
+     * page. Clears the sticky header. Relies on align-items:start on the
+     * grid in projects/[id].astro — a stretched grid item fills the row and
+     * has nothing to stick within.
+     */
+    position: sticky;
+    top: calc(var(--header-height) + 1.5rem);
   }
 
   .facts-heading {
@@ -110,6 +119,8 @@ const { role, timeline, status, stack, links } = Astro.props;
       border: var(--rule);
       border-radius: 2px;
       padding: 1.1rem 1.15rem;
+      /* Stacked above the prose here, so there is nothing to stick beside. */
+      position: static;
     }
 
     .facts-heading {

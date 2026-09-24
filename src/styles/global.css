@@ -60,6 +60,20 @@ html {
   scroll-padding-top: calc(var(--header-height) + 1rem);
 }
 
+/*
+ * Slim, quiet scrollbars — the default chrome is heavy against a layout built
+ * from hairlines. Both properties inherit, so setting them here reaches every
+ * scroll container: the page, the chat log, the slide-thumbnail strip.
+ *
+ * The standard properties are used rather than ::-webkit-scrollbar, which
+ * browsers ignore once these are set. "thin" rather than "none": an invisible
+ * scrollbar hides how long a page is and leaves nothing to grab with a mouse.
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
 body {
   min-height: 100dvh;
   display: flex;

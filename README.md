@@ -35,7 +35,7 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 139 tests, includes a real astro build
+npm run test        # vitest — 142 tests, includes a real astro build
 npm run typecheck   # astro check
 ```
 
@@ -268,6 +268,22 @@ v2 inherited v1's identity wholesale. Deploying it as-is would clash with the li
   dark mode still gets the light palette.
 - **The mobile layout** is written but hasn't been checked in a real narrow viewport. Verify
   it with Chrome DevTools' device toolbar.
+
+## Scroll behaviour
+
+The handoff specifies no scroll-triggered animation, and there is none. What exists is
+structural only, so it behaves identically for someone who has asked for reduced motion:
+
+- **The header** is sticky, and `scroll-padding-top` keeps anchors clear of it.
+- **The facts panel** on a project page is sticky below the header. A case study runs
+  several screens, and otherwise Stack and Links scroll away after the first one. It needs
+  `align-items: start` on `.detail-body` — a stretched grid item fills the row and has
+  nothing to stick within. On mobile the panel stacks above the prose, so it reverts to
+  `position: static`.
+- **Scrollbars** are slimmed with `scrollbar-width: thin` and a muted `scrollbar-color`,
+  set on `html` because both properties inherit and so reach the chat log and the
+  slide-thumbnail strip too. Deliberately not `none`: an invisible scrollbar hides how long
+  a page is and leaves nothing to grab with a mouse.
 
 ## Layout ratios
 
