@@ -466,10 +466,12 @@ describe("launch readiness", () => {
     expect(svg).toContain("#1c4f4a");
     expect(svg).not.toContain("#2563eb");
 
-    // Paths, not <text>: a favicon can't load a webfont, so text would fall
-    // back to whatever the OS has and shift between machines.
-    expect(svg).not.toContain("<text");
-    expect(svg).toContain("<path");
+    // Paths, not text elements: a favicon can't load a webfont, so text would
+    // fall back to whatever the OS has and shift between machines. Comments
+    // are stripped first, since the file explains this in prose.
+    const markup = svg.replace(/<!--[\s\S]*?-->/g, "");
+    expect(markup).not.toContain("<text");
+    expect(markup).toContain("<path");
   });
 
   test("favicon, robots, sitemap and 404 are in place", () => {
