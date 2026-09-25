@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="20" fill="#2563eb"/>
-  <text x="50" y="68" font-family="system-ui,sans-serif" font-size="48" font-weight="700" fill="white" text-anchor="middle">JW</text>
+<!--
+  JY monogram in the site's accent teal.
+
+  Drawn as paths rather than <text>: a favicon can't load a webfont, so text
+  would fall back to whatever the OS has and the metrics would shift between
+  machines. Paths render identically everywhere.
+
+  Geometry is centred on a 32 box — strokes span x 4.9-27.1 and y 7.4-23.6,
+  sitting a touch high, which is where a monogram should sit optically.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="JY">
+  <rect width="32" height="32" rx="7" fill="#1c4f4a" />
+  <g
+    fill="none"
+    stroke="#fffefb"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <!-- J: stem, then a true semicircular hook (chord 6 at r=3). -->
+    <path d="M12.5 9V19a3 3 0 0 1-6 0" />
+    <!-- Y: two diagonals meeting at 15.5, then the stem. -->
+    <path d="M17.5 9 21.5 15.5 25.5 9" />
+    <path d="M21.5 15.5V22" />
+  </g>
 </svg>

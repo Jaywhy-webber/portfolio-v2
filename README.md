@@ -35,7 +35,7 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 142 tests, includes a real astro build
+npm run test        # vitest — 143 tests, includes a real astro build
 npm run typecheck   # astro check
 ```
 

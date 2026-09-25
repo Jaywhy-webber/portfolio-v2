@@ -457,6 +457,21 @@ describe("work", () => {
 });
 
 describe("launch readiness", () => {
+  test("the favicon is a JY monogram in the accent colour", () => {
+    const svg = read("dist/favicon.svg");
+
+    expect(svg).toContain('aria-label="JY"');
+    // v1's icon read "JW" in its blue. Both were carried over by mistake.
+    expect(svg).not.toContain("JW");
+    expect(svg).toContain("#1c4f4a");
+    expect(svg).not.toContain("#2563eb");
+
+    // Paths, not <text>: a favicon can't load a webfont, so text would fall
+    // back to whatever the OS has and shift between machines.
+    expect(svg).not.toContain("<text");
+    expect(svg).toContain("<path");
+  });
+
   test("favicon, robots, sitemap and 404 are in place", () => {
     expect(existsSync("dist/favicon.svg")).toBe(true);
     expect(existsSync("dist/robots.txt")).toBe(true);
