@@ -49,6 +49,15 @@ describe("corpus builder", () => {
     expect(kart!.text).toContain("Problem");
   });
 
+  test("each research paper cites its own section of the research page", async () => {
+    const docs = await corpus();
+    // A shared route led the model to invent /research/<paper> paths that 404.
+    expect(docs.find((d) => d.id === "research:databusters")!.route).toBe("/research#databusters");
+    expect(docs.find((d) => d.id === "research:beijing-property-market")!.route).toBe(
+      "/research#beijing-property-market",
+    );
+  });
+
   test("the profile names the contact routes so the bot can point at them", async () => {
     const profile = (await corpus()).find((d) => d.id === "profile:about");
     expect(flat(profile!.text)).toContain("National University of Singapore");
@@ -62,19 +71,24 @@ describe("corpus builder", () => {
 });
 
 describe("system prompt", () => {
-  test("wraps every document with its id and route for citation", async () => {
+  test("wraps every document with its route for citation", async () => {
     const docs = await corpus();
     const prompt = buildSystemPrompt(docs);
-    for (const doc of docs) {
-      expect(prompt).toContain(`id="${doc.id}"`);
-      expect(prompt).toContain(`route="${doc.route}"`);
-    }
+    for (const doc of docs) expect(prompt).toContain(`route="${doc.route}"`);
   });
 
-  test("tells the model to cite routes, not document ids", async () => {
+  test("never shows the model a document id it could cite", async () => {
+    const docs = await corpus();
+    const prompt = buildSystemPrompt(docs);
+    // Seen live: with ids visible the model cited [/research:databusters],
+    // fusing id and route into a link to nowhere.
+    for (const doc of docs) expect(prompt, doc.id).not.toContain(doc.id);
+  });
+
+  test("tells the model to copy routes exactly rather than compose them", async () => {
     const prompt = flat(buildSystemPrompt(await corpus()));
-    // A cited id renders as a link to a page that does not exist.
-    expect(prompt).toContain("never its id");
+    expect(prompt).toContain("Copy the document's route attribute exactly");
+    expect(prompt).toContain("never build a path of your own");
   });
 
   test("puts the corpus before the instructions so the prefix can cache", async () => {
@@ -136,6 +150,13 @@ describe("worker wiring", () => {
   test("endpoint and model are both configurable", () => {
     expect(worker()).toContain("env.LLM_BASE_URL");
     expect(worker()).toContain("env.LLM_MODEL");
+  });
+
+  test("the entry module exports only its handler", () => {
+    // workerd treats each named export of the entry as a handler and refuses
+    // to start when one is a plain value, so shared constants live elsewhere.
+    expect(worker()).not.toMatch(/^export (const|let|function|class|async)/m);
+    expect(worker()).toContain("export default {");
   });
 
   test("temperature is pinned to 0 for grounded restatement", () => {

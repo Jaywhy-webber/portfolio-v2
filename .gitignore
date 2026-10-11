@@ -9,3 +9,6 @@ node_modules/
 
 # Generated at build time from the content collections
 worker/corpus.ts
+
+# Live chat eval reports, which contain model output
+evals/chat/results/

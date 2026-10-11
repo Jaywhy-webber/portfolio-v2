@@ -12,7 +12,8 @@
     "build:corpus": "tsx scripts/build-corpus.ts",
     "build:worker": "npm run build && npm run build:corpus",
     "dev:worker": "npm run build:worker && wrangler dev",
-    "deploy": "npm run build:worker && wrangler deploy"
+    "deploy": "npm run build:worker && wrangler deploy",
+    "eval:chat": "tsx evals/chat/run.ts"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.3",

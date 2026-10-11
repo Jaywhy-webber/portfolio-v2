@@ -26,7 +26,7 @@ const sections = await Promise.all(
     <h1 class="visually-hidden">Research</h1>
 
     {sections.map(({ entry, Content }, i) => (
-      <section class="research-entry">
+      <section class="research-entry" id={entry.id}>
         <div class="entry-head">
           <span class="index-numeral entry-index">R{i + 1}</span>
           <h2 class="entry-title">{entry.data.title}</h2>

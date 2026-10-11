@@ -115,7 +115,9 @@ function buildResearch(): CorpusDoc[] {
     return {
       id: `research:${id}`,
       title,
-      route: "/research",
+      // Each paper has its own anchor on the shared page. With one route for
+      // both, the model invented per-paper paths that 404.
+      route: `/research#${id}`,
       text: [
         `# Research: ${title} (${field(fm, "year")})`,
         `Topics: ${listField(fm, "tags").join(", ")}`,

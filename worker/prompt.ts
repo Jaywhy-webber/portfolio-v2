@@ -21,12 +21,15 @@ export const LIMITS = {
 /**
  * Corpus goes first and is byte-identical between requests, so OpenAI's
  * prefix caching can hit on it. Anything varying per request must come after.
+ *
+ * Documents carry their route but not their id. With both visible, the model
+ * fused them into citations like [/research:databusters] that link nowhere.
  */
 export function buildSystemPrompt(corpus: CorpusDoc[]): string {
   const documents = corpus
     .map((doc) => {
       const cite = doc.route ? `route="${doc.route}"` : `route="none"`;
-      return `<document id="${doc.id}" title="${doc.title}" ${cite}>\n${doc.text}\n</document>`;
+      return `<document title="${doc.title}" ${cite}>\n${doc.text}\n</document>`;
     })
     .join("\n\n");
 
@@ -53,8 +56,9 @@ useful answer, and is always better than a plausible-sounding invention.
 
 When you do answer, cite the page you drew on by putting its route in square
 brackets at the end of the relevant sentence, for example [/projects/kart-telemetry/].
-Cite the document's route attribute, never its id. A citation must be a path
-that starts with "/" and appears as a route="..." value above. If a document's
+Copy the document's route attribute exactly, character for character, and
+never build a path of your own. A citation must be a path that starts with "/"
+and appears as a route="..." value above. If a document's
 route is "none", do not cite it at all. When you are saying the site does not
 cover something, add no citation — there is no source to point at.
 

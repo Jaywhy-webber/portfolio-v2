@@ -398,6 +398,13 @@ describe("research", () => {
     expect(html).toContain("Beijing Property Market Analysis");
   });
 
+  test("each section is an anchor the chat assistant can cite", () => {
+    const html = read("dist/research/index.html");
+    // The corpus cites /research#<entry id>; these must resolve.
+    expect(html).toMatch(/<section class="research-entry"[^>]*id="databusters"/);
+    expect(html).toMatch(/<section class="research-entry"[^>]*id="beijing-property-market"/);
+  });
+
   test("the image viewer renders a thumbnail per slide plus a counter", () => {
     const html = read("dist/research/index.html");
     expect(countOccurrences(html, /class="slide-thumb(?: [^"]*)?"/g)).toBe(30);

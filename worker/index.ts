@@ -6,14 +6,10 @@
  * grounding corpus. The API key lives as a Worker secret and never reaches
  * the browser — that constraint is the whole reason this Worker exists.
  */
+import { DEFAULT_BASE_URL, DEFAULT_MODEL } from "./config";
 import { CORPUS } from "./corpus";
 import { buildSystemPrompt, LIMITS, REFUSALS } from "./prompt";
 import type { ChatMessage, Env } from "./types";
-
-const DEFAULT_BASE_URL = "https://soclaas-api.comp.nus.edu.sg/v1";
-// Not SoCLaaS's "default" alias: that points at an agentic-coding model and
-// costs ~4x more per question for a task that is grounded restatement.
-const DEFAULT_MODEL = "gemma4:26b";
 
 /** Built once per isolate, not per request — it is ~22k tokens of string work. */
 let cachedSystemPrompt: string | undefined;

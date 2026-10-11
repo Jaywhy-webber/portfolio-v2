@@ -35,9 +35,13 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 143 tests, includes a real astro build
+npm run test        # vitest — 181 tests, includes a real astro build
 npm run typecheck   # astro check
+npm run eval:chat   # live eval of the assistant's replies; needs dev:worker running
 ```
+
+The live eval spends tokens, so it is not part of `npm run test`. See
+[docs/chatbot-testing.md](docs/chatbot-testing.md) for the test criteria and how to read a run.
 
 ## The assistant
 
