@@ -1,5 +1,9 @@
 {
-  "name": "portfolio-v2",
+  // Must match v1's worker name: a workers.dev URL is
+  // <worker-name>.<subdomain>.workers.dev, so this is what makes a deploy
+  // take over portfolio.wawjerome.workers.dev rather than stand up a second
+  // site beside it.
+  "name": "portfolio",
   "main": "worker/index.ts",
   "compatibility_date": "2025-01-01",
 

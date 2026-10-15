@@ -3,9 +3,11 @@
 A rebuild of the portfolio against `design_handoff_portfolio_wireframes/`, plus a grounded
 assistant that answers visitor questions from the site's own content.
 
-**Status: local only.** It is a git repository with no remote, and `wrangler.jsonc` is
-configured but nothing has been deployed. The original site in `../portfolio` is untouched
-and is still the live one. See [Before deploying](#before-deploying): several things
+**Status: not deployed.** The code is on GitHub at
+[Jaywhy-webber/portfolio-v2](https://github.com/Jaywhy-webber/portfolio-v2), which is public,
+and `wrangler.jsonc` is configured, but nothing has been deployed. The original site in
+`../portfolio` (the private `Jaywhy-webber/portfolio` repo) is untouched and is still the live
+one. See [Before deploying](#before-deploying): several things
 collide with v1 and must be changed first.
 
 ## Running it
@@ -272,6 +274,8 @@ v2 inherited v1's identity wholesale. Deploying it as-is would clash with the li
   dark mode still gets the light palette.
 - **The mobile layout** is written but hasn't been checked in a real narrow viewport. Verify
   it with Chrome DevTools' device toolbar.
+- **The workflow page's repository link** (`workflowRepoUrl` in `src/data/workflow.ts`) points
+  at `Jaywhy-webber/portfolio`, which is private, so visitors get a GitHub 404.
 
 ## Scroll behaviour
 
