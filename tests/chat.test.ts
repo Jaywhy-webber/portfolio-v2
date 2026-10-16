@@ -262,6 +262,26 @@ describe("chat widget", () => {
     expect(icon).toContain("M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z");
   });
 
+  test("only routes that exist can become citation links", () => {
+    const html = readFileSync("dist/index.html", "utf-8");
+
+    // The model has been observed inventing a descriptive path for the profile
+    // document, whose real route is "/" — e.g. "/about-jerome-yeoh/". The
+    // widget checks every citation against this list before linking it.
+    const match = html.match(/data-routes="([^"]*)"/);
+    expect(match).not.toBeNull();
+    const routes = JSON.parse(match![1].replace(/&quot;/g, '"')) as string[];
+
+    for (const route of ["/", "/work", "/projects", "/research", "/workflow", "/pipeline"]) {
+      expect(routes, `missing ${route}`).toContain(route);
+    }
+    for (const id of ["kart-telemetry", "routlette"]) {
+      expect(routes).toContain(`/projects/${id}/`);
+    }
+
+    expect(widget()).toContain("knownRoutes.includes");
+  });
+
   test("invites the visitor to chat, on every page", () => {
     for (const route of ["dist/index.html", "dist/work/index.html", "dist/research/index.html"]) {
       const html = readFileSync(route, "utf-8");

@@ -6,6 +6,8 @@ stack:
   - Chroma
   - Groq / Llama 3.3
   - Streamlit
+role: Solo build
+status: Evaluated, not deployed
 sortOrder: 4
 preview:
   kind: animated-screenshot
@@ -15,6 +17,11 @@ demo:
   kind: none
 repoUrl: https://github.com/Jaywhy-webber/EC1101-RAG-Chatbot
 ---
+
+## Context
+
+Built over the course material for EC1101, an NUS economics module, as a test
+of whether a retrieval system can be made to refuse rather than guess.
 
 ## Problem
 

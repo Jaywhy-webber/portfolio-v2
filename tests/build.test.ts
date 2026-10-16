@@ -330,12 +330,24 @@ describe("project detail", () => {
     );
   });
 
-  test("the facts panel lists stack and links, and omits fields with no content yet", () => {
+  test("the facts panel lists the fields a project actually has", () => {
     const html = read("dist/projects/kart-telemetry/index.html");
-    expect(html).toMatch(/<dt class="label"[^>]*>Stack<\/dt>/);
-    expect(html).toMatch(/<dt class="label"[^>]*>Links<\/dt>/);
-    // role/timeline/status are not in the content yet, so no empty rows appear.
-    expect(html).not.toMatch(/<dt class="label"[^>]*>Role<\/dt>/);
+    for (const field of ["Role", "Status", "Stack", "Links"]) {
+      expect(html, `facts panel missing ${field}`).toMatch(
+        new RegExp(`<dt class="label"[^>]*>${field}</dt>`),
+      );
+    }
+  });
+
+  test("a field with no value renders no row at all", () => {
+    // Only Routlette is dated on the CV, so the others must not show an
+    // empty Timeline label.
+    expect(read("dist/projects/routlette/index.html")).toMatch(
+      /<dt class="label"[^>]*>Timeline<\/dt>/,
+    );
+    expect(read("dist/projects/kart-telemetry/index.html")).not.toMatch(
+      /<dt class="label"[^>]*>Timeline<\/dt>/,
+    );
   });
 
   test("Launch demo renders only for projects that have one", () => {

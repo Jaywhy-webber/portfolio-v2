@@ -201,7 +201,12 @@ function buildProfile(): CorpusDoc {
 
 Jerome Yeoh is a Business Analytics student at the National University of
 Singapore, reading a Bachelor of Science in Business Analytics with a second
-major in Economics. His work centres on data and AI.
+major in Economics, on the Special Programme in Undergraduate Research. He is
+a Merit Scholar with a GPA of 4.63 out of 5.0, and expects to graduate in
+July 2029. His work centres on data and AI.
+
+He is currently an Analyst Intern in Strategic Planning at the Public Service
+Division, Prime Minister's Office. Full role history is on the work page.
 
 Contact and links:
 - Email: jeromeyeohhc@gmail.com

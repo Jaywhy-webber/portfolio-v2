@@ -1,6 +1,22 @@
 ---
 import Icon from "./Icon.astro";
 import CopyButton from "./CopyButton.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+// Every route the assistant is allowed to cite. The model occasionally invents
+// a descriptive-looking path instead of using a document's route attribute
+// ("/about-jerome-yeoh/" for the profile, whose route is "/"), and the widget
+// would happily turn that into a link to a page that does not exist.
+const projects = await getCollection("projects");
+const validRoutes = [
+  "/",
+  "/work",
+  "/projects",
+  "/research",
+  "/workflow",
+  "/pipeline",
+  ...projects.map((p: CollectionEntry<"projects">) => `/projects/${p.id}/`),
+];
 
 /**
  * Grounded assistant. The bubble is always reachable; the panel talks to
@@ -11,7 +27,7 @@ import CopyButton from "./CopyButton.astro";
  */
 ---
 
-<div class="chat" id="chat-widget" transition:persist>
+<div class="chat" id="chat-widget" data-routes={JSON.stringify(validRoutes)} transition:persist>
   <div class="chat-launcher">
     <!--
       Invitation beside the bubble. An icon on its own doesn't say what it
@@ -162,22 +178,37 @@ import CopyButton from "./CopyButton.astro";
       el.appendChild(dots);
     }
 
-    /** Turns [/route] citations into real links once a reply has finished. */
+    let knownRoutes: string[] = [];
+    try {
+      knownRoutes = JSON.parse(widget.dataset.routes ?? "[]");
+    } catch {
+      /* no list means no citation is trusted, which fails safe */
+    }
+
+    /**
+     * Turns [/route] citations into links once a reply has finished.
+     *
+     * Only routes that actually exist become links. The model sometimes cites
+     * a document id, or invents a descriptive path like "/about-jerome-yeoh/"
+     * for the profile document (whose route is "/"). Either would render as a
+     * link to a 404, so anything unrecognised is dropped from the text
+     * entirely rather than shown as a broken reference.
+     */
     function linkCitations(el: HTMLElement) {
       const text = el.textContent ?? "";
       if (!text.includes("[/")) return;
       el.replaceChildren();
       let cursor = 0;
-      // Routes only — a colon means the model cited a document id, which
-      // would otherwise render as a link to a page that does not exist.
-      for (const match of text.matchAll(/\[(\/[^\]\s:]*)\]/g)) {
+      for (const match of text.matchAll(/\s*\[(\/[^\]\s]*)\]/g)) {
         const at = match.index ?? 0;
         el.append(text.slice(cursor, at));
-        const a = document.createElement("a");
-        a.href = match[1];
-        a.className = "chat-cite";
-        a.textContent = match[1];
-        el.append(a);
+        if (knownRoutes.includes(match[1])) {
+          const a = document.createElement("a");
+          a.href = match[1];
+          a.className = "chat-cite";
+          a.textContent = match[1];
+          el.append(" ", a);
+        }
         cursor = at + match[0].length;
       }
       el.append(text.slice(cursor));

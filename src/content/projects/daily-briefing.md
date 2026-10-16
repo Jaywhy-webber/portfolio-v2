@@ -5,7 +5,9 @@ stack:
   - Python
   - GitHub Actions
   - Astro
-  - API Integrations
+  - Groq / Llama
+role: Solo build
+status: Running daily
 sortOrder: 3
 preview:
   kind: video
@@ -16,6 +18,11 @@ demo:
   localPath: /demos/daily-briefing/
 repoUrl: https://github.com/Jaywhy-webber/daily-briefing
 ---
+
+## Context
+
+A personal tool, built to replace the habit of checking several news, market
+and weather sources separately each morning.
 
 ## Problem
  
