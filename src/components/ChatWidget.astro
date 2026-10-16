@@ -3,20 +3,27 @@ import Icon from "./Icon.astro";
 import CopyButton from "./CopyButton.astro";
 import { getCollection, type CollectionEntry } from "astro:content";
 
-// Every route the assistant is allowed to cite. The model occasionally invents
-// a descriptive-looking path instead of using a document's route attribute
-// ("/about-jerome-yeoh/" for the profile, whose route is "/"), and the widget
-// would happily turn that into a link to a page that does not exist.
+/**
+ * Every route the assistant may cite, with the name to show for it.
+ *
+ * Two reasons this is a map rather than a list. The model invents
+ * descriptive-looking paths ("/about-jerome-yeoh/" for the profile, whose
+ * route is "/"), so anything not listed here is dropped rather than linked to
+ * a 404. And a raw path makes a poor label: the profile cites "/", which
+ * rendered as a bare slash against the sentence's full stop and read as "/.".
+ */
 const projects = await getCollection("projects");
-const validRoutes = [
-  "/",
-  "/work",
-  "/projects",
-  "/research",
-  "/workflow",
-  "/pipeline",
-  ...projects.map((p: CollectionEntry<"projects">) => `/projects/${p.id}/`),
-];
+const routeLabels: Record<string, string> = {
+  "/": "Home",
+  "/work": "Work",
+  "/projects": "Projects",
+  "/research": "Research",
+  "/workflow": "Workflow",
+  "/pipeline": "Pipeline",
+  ...Object.fromEntries(
+    projects.map((p: CollectionEntry<"projects">) => [`/projects/${p.id}/`, p.data.title]),
+  ),
+};
 
 /**
  * Grounded assistant. The bubble is always reachable; the panel talks to
@@ -27,7 +34,7 @@ const validRoutes = [
  */
 ---
 
-<div class="chat" id="chat-widget" data-routes={JSON.stringify(validRoutes)} transition:persist>
+<div class="chat" id="chat-widget" data-routes={JSON.stringify(routeLabels)} transition:persist>
   <div class="chat-launcher">
     <!--
       Invitation beside the bubble. An icon on its own doesn't say what it
@@ -178,11 +185,11 @@ const validRoutes = [
       el.appendChild(dots);
     }
 
-    let knownRoutes: string[] = [];
+    let routeLabels: Record<string, string> = {};
     try {
-      knownRoutes = JSON.parse(widget.dataset.routes ?? "[]");
+      routeLabels = JSON.parse(widget.dataset.routes ?? "{}");
     } catch {
-      /* no list means no citation is trusted, which fails safe */
+      /* no map means no citation is trusted, which fails safe */
     }
 
     /**
@@ -202,12 +209,18 @@ const validRoutes = [
       for (const match of text.matchAll(/\s*\[(\/[^\]\s]*)\]/g)) {
         const at = match.index ?? 0;
         el.append(text.slice(cursor, at));
-        if (knownRoutes.includes(match[1])) {
+
+        // The model sometimes pulls the sentence's punctuation inside the
+        // brackets, e.g. "[/.]" for the home route. Trim it before matching,
+        // otherwise a perfectly good citation gets thrown away.
+        const route = match[1].replace(/[.,;:]+$/, "");
+        const label = routeLabels[route];
+        if (label) {
           const a = document.createElement("a");
-          a.href = match[1];
+          a.href = route;
           a.className = "chat-cite";
-          a.textContent = match[1];
-          el.append(" ", a);
+          a.textContent = label;
+          el.append(" (", a, ")");
         }
         cursor = at + match[0].length;
       }

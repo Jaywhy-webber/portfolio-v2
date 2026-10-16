@@ -270,16 +270,22 @@ describe("chat widget", () => {
     // widget checks every citation against this list before linking it.
     const match = html.match(/data-routes="([^"]*)"/);
     expect(match).not.toBeNull();
-    const routes = JSON.parse(match![1].replace(/&quot;/g, '"')) as string[];
+    const labels = JSON.parse(match![1].replace(/&quot;/g, '"')) as Record<string, string>;
 
     for (const route of ["/", "/work", "/projects", "/research", "/workflow", "/pipeline"]) {
-      expect(routes, `missing ${route}`).toContain(route);
+      expect(labels, `missing ${route}`).toHaveProperty(route);
     }
     for (const id of ["kart-telemetry", "routlette"]) {
-      expect(routes).toContain(`/projects/${id}/`);
+      expect(labels).toHaveProperty(`/projects/${id}/`);
     }
 
-    expect(widget()).toContain("knownRoutes.includes");
+    // A raw path makes a poor label: the profile cites "/", which rendered as
+    // a bare slash and read as "/." against the sentence's full stop.
+    expect(labels["/"]).toBe("Home");
+    expect(labels["/projects/kart-telemetry/"]).toBe("Kart Telemetry Dashboard");
+
+    // Punctuation pulled inside the brackets must not discard the citation.
+    expect(widget()).toContain('replace(/[.,;:]+$/, "")');
   });
 
   test("invites the visitor to chat, on every page", () => {
