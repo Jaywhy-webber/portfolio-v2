@@ -5,7 +5,10 @@ import { remarkStripLeadingHeading } from "./src/lib/remark-strip-leading-headin
 
 export default defineConfig({
   output: "static",
-  site: "https://portfolio.wawjerome.workers.dev",
+  // The public address, and what the CV sends people to. Canonical tags, OG
+  // image URLs and the sitemap are all built from this, so it has to be the
+  // custom domain rather than the workers.dev one the worker also answers on.
+  site: "https://jeromeyeoh.com",
   integrations: [sitemap()],
   markdown: {
     processor: unified({
