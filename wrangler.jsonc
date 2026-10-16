@@ -29,17 +29,12 @@
     "LLM_MODEL": "gemma4:26b"
   },
 
-  // Per-IP rate limit. Cloudflare's binding only supports 10s or 60s windows,
-  // so this is 10 messages per minute rather than the per-10-minutes figure
-  // discussed; it still stops a script from running up a bill.
-  "unsafe": {
-    "bindings": [
-      {
-        "name": "CHAT_RATE_LIMIT",
-        "type": "ratelimit",
-        "namespace_id": "1001",
-        "simple": { "limit": 10, "period": 60 }
-      }
-    ]
-  }
+  // Per-IP rate limit. Cloudflare's binding only supports 10s or 60s windows.
+  "ratelimits": [
+    {
+      "name": "CHAT_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ]
 }

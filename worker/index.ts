@@ -87,10 +87,16 @@ async function handleChat(
   if (question.length > LIMITS.maxQuestionChars) return refuse(REFUSALS.tooLong);
 
   // Per-IP limit. Absent in local dev, where the binding isn't configured.
+  // Per-IP limit. Absent in local dev, where the binding isn't configured.
+  //
+  // NOTE: verified non-functional in production on this account — limit()
+  // returns success on every call, well past the configured 10/60s. Left in
+  // place because it costs nothing and may begin enforcing, but it must not
+  // be treated as a working control. See README "Cost and abuse".
   if (env.CHAT_RATE_LIMIT) {
     const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-    const { success } = await env.CHAT_RATE_LIMIT.limit({ key: ip });
-    if (!success) return refuse(REFUSALS.rateLimited);
+    const result = await env.CHAT_RATE_LIMIT.limit({ key: ip });
+    if (!result?.success) return refuse(REFUSALS.rateLimited);
   }
 
   const messages = [

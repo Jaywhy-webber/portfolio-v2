@@ -156,8 +156,12 @@ trimmed corpus would.
 
 ### Cost and abuse
 
-- **Per-IP rate limit** of 10 requests per 60 seconds, set through Cloudflare's rate-limiting
-  binding. The binding only supports 10s or 60s windows.
+- **Per-IP rate limit — configured but NOT enforcing.** The binding is declared correctly
+  (`wrangler deploy` reports `env.CHAT_RATE_LIMIT (10 requests/60s)  Rate Limit`) and
+  `limit()` is a real function receiving a real `cf-connecting-ip`, but it returned
+  `{"success": true}` on 12 consecutive calls against a 10/60s rule in production. Fifteen
+  concurrent requests were all answered. Treat this as absent until it is replaced with a
+  Durable Object counter or a Cloudflare WAF rate-limiting rule on `/api/chat`.
 - **Caps** on question length (600 chars), replayed history (8 turns) and `max_tokens`
   (1600). The token ceiling is high because a reasoning model spends its budget before it
   writes anything. With reasoning off, actual replies are far shorter.
