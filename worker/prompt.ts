@@ -16,6 +16,9 @@ export const LIMITS = {
    * shown, but it still has to fit.
    */
   maxOutputTokens: 1600,
+  /** Requests allowed per IP per window. */
+  rateLimit: 10,
+  rateWindowMs: 60_000,
 } as const;
 
 /**

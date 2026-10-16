@@ -29,12 +29,16 @@
     "LLM_MODEL": "gemma4:26b"
   },
 
-  // Per-IP rate limit. Cloudflare's binding only supports 10s or 60s windows.
-  "ratelimits": [
-    {
-      "name": "CHAT_RATE_LIMIT",
-      "namespace_id": "1001",
-      "simple": { "limit": 10, "period": 60 }
-    }
-  ]
+  // Per-IP rate limit, 10 requests per 60s.
+  //
+  // Cloudflare's own rate-limiting binding was tried first and does not
+  // enforce on this account: limit() returned success on 12 consecutive calls
+  // past a 10/60s rule. This Durable Object counts requests itself.
+  //
+  // new_sqlite_classes rather than new_classes: SQLite-backed Durable Objects
+  // are the ones available without a paid Workers plan.
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }]
 }

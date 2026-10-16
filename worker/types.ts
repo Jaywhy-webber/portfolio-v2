@@ -24,8 +24,17 @@ export interface Env {
   LLM_BASE_URL?: string;
   /** Model id, so swapping models is config rather than code. */
   LLM_MODEL?: string;
-  /** Cloudflare rate-limiting binding. */
-  CHAT_RATE_LIMIT?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  /**
+   * Durable Object namespace backing the per-IP rate limiter.
+   *
+   * Cloudflare's own rate-limiting binding was tried first and did not
+   * enforce on this account: it returned success on every call, well past the
+   * configured window. This replaces it with a counter we control.
+   */
+  RATE_LIMITER?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): { fetch(request: Request): Promise<Response> };
+  };
   /** Static asset binding, present when the Worker serves ./dist. */
   ASSETS?: { fetch(request: Request): Promise<Response> };
 }

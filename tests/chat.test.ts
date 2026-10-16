@@ -164,14 +164,36 @@ describe("worker wiring", () => {
   });
 
   test("the rate limiter is consulted before the model is called", () => {
+    // A blocked request must cost nothing, so it has to return before the
+    // upstream call.
     const src = worker();
-    expect(src.indexOf("CHAT_RATE_LIMIT")).toBeLessThan(src.indexOf("chat/completions"));
+    expect(src.indexOf("RATE_LIMITER")).toBeLessThan(src.indexOf("chat/completions"));
+  });
+
+  test("rate limiting is a Durable Object we control, not the platform binding", () => {
+    // Cloudflare's own binding returned success on 12 consecutive calls past a
+    // 10/60s rule on this account, so it was never a control.
+    const config = readFileSync("wrangler.jsonc", "utf-8");
+    expect(config).toContain('"class_name": "RateLimiter"');
+    // SQLite-backed classes are the ones available without a paid plan.
+    expect(config).toContain("new_sqlite_classes");
+    expect(config).not.toContain("CHAT_RATE_LIMIT");
+
+    // The counter must survive instance eviction, or an attacker gets a fresh
+    // allowance whenever the object is reclaimed.
+    const limiter = readFileSync("worker/rate-limiter.ts", "utf-8");
+    expect(limiter).toContain("this.storage.put");
+    expect(limiter).toContain("window.count <= limit");
+  });
+
+  test("a failing limiter does not take the endpoint down with it", () => {
+    expect(worker()).toContain("rate limiter failed");
   });
 
   test("wrangler config ships the assets binding and no secret", () => {
     const config = readFileSync("wrangler.jsonc", "utf-8");
     expect(config).toContain('"binding": "ASSETS"');
-    expect(config).toContain("CHAT_RATE_LIMIT");
+    expect(config).toContain("RATE_LIMITER");
     expect(config).not.toContain("LLM_API_KEY\":");
     expect(config).not.toMatch(/clsk_[A-Za-z0-9]/);
   });

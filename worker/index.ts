@@ -11,6 +11,9 @@ import { CORPUS } from "./corpus";
 import { buildSystemPrompt, LIMITS, REFUSALS } from "./prompt";
 import type { ChatMessage, Env } from "./types";
 
+// wrangler resolves the Durable Object class from the entry point.
+export { RateLimiter } from "./rate-limiter";
+
 /** Built once per isolate, not per request — it is ~22k tokens of string work. */
 let cachedSystemPrompt: string | undefined;
 function systemPrompt(): string {
@@ -86,17 +89,24 @@ async function handleChat(
   if (!question) return new Response("Bad request", { status: 400 });
   if (question.length > LIMITS.maxQuestionChars) return refuse(REFUSALS.tooLong);
 
-  // Per-IP limit. Absent in local dev, where the binding isn't configured.
-  // Per-IP limit. Absent in local dev, where the binding isn't configured.
-  //
-  // NOTE: verified non-functional in production on this account — limit()
-  // returns success on every call, well past the configured 10/60s. Left in
-  // place because it costs nothing and may begin enforcing, but it must not
-  // be treated as a working control. See README "Cost and abuse".
-  if (env.CHAT_RATE_LIMIT) {
+  // Per-IP limit, enforced by a Durable Object counter. Absent in local dev
+  // only if the binding is not configured.
+  if (env.RATE_LIMITER) {
     const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-    const result = await env.CHAT_RATE_LIMIT.limit({ key: ip });
-    if (!result?.success) return refuse(REFUSALS.rateLimited);
+    const limiter = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName(ip));
+    try {
+      const response = await limiter.fetch(
+        new Request("https://limiter/check", {
+          method: "POST",
+          body: JSON.stringify({ limit: LIMITS.rateLimit, windowMs: LIMITS.rateWindowMs }),
+        }),
+      );
+      const { success } = (await response.json()) as { success: boolean };
+      if (!success) return refuse(REFUSALS.rateLimited);
+    } catch (error) {
+      // A broken limiter must not take the whole endpoint down with it.
+      console.error("rate limiter failed", error);
+    }
   }
 
   const messages = [
