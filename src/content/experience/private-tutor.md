@@ -10,4 +10,6 @@ tags:
 sortOrder: 2
 ---
 
-Deliver tuition and mentorship to several primary and secondary students, improving academic performance across all tutees. Develop lesson plans, customised exercises and progress tracking reports, and impart study methods that help students build independent habits.
+- Deliver tuition and mentorship to several primary and secondary students, improving academic performance across all tutees.
+- Develop lesson plans, customised exercises and progress tracking reports.
+- Impart efficient study methods so students build independent study habits.

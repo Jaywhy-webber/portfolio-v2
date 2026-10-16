@@ -107,6 +107,28 @@ const { dateRange, dateNote, title, org, tags, relatedHref } = Astro.props;
     font-size: 0.875rem;
   }
 
+  /*
+   * Entries are written as bullets. Only paragraphs were sized before, so a
+   * list would have rendered a step larger than everything else in the row.
+   */
+  .entry-description :global(ul) {
+    font-size: 0.875rem;
+    padding-left: 1.1rem;
+  }
+
+  .entry-description :global(li) {
+    /* Tighter than prose default: these are scanned, not read through. */
+    line-height: 1.55;
+  }
+
+  .entry-description :global(li)::marker {
+    color: var(--color-border-strong);
+  }
+
+  .entry-description :global(li + li) {
+    margin-top: 0.3rem;
+  }
+
   .entry-tags {
     margin-top: 0.85rem;
   }

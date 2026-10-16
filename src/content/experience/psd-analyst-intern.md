@@ -12,4 +12,7 @@ tags:
 sortOrder: 1
 ---
 
-Building an internal dashboard for senior leadership that tracks around 20 key metrics on Public Service goals, designing the visuals and data presentation in Excel and Tableau, and automating its data update process as the project develops. Also building and testing an AI assistant on Pair, the government's in-house LLM, to streamline a recurring internal approval process, and a live tool that combines Excel formulas with Copilot to support planning discussions.
+- Developing an internal dashboard for senior leadership tracking around 20 key metrics on Public Service goals, designing the visuals and data presentation in Excel and Tableau.
+- Automating the dashboard's data update process as the project moves through development.
+- Building and testing an AI assistant on Pair, the government's in-house LLM, to streamline a recurring internal approval process and reduce paperwork for teams across the division.
+- Developing a live tool to facilitate planning discussions, combining Excel formulas for structured summaries with Copilot to synthesise qualitative input.
