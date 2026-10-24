@@ -84,6 +84,26 @@ describe("checkGlobal", () => {
     expect(failed(checkGlobal("See [/research/] and [/projects/kart-telemetry].", ROUTES))).toEqual([]);
   });
 
+  test("several routes in one bracket fail, and each is still checked", () => {
+    // Seen live: the widget links one route per bracket, so a list renders as raw text.
+    const list = checkGlobal("Relevant work [/, /research, /made-up].", ROUTES);
+    expect(failed(list)).toEqual(["G4 one route per bracket", "G4 citations are real routes"]);
+    expect(list.find((r) => r.rule === "G4 citations are real routes")!.detail).toBe("invalid: /made-up");
+    expect(failed(checkGlobal("Relevant work [/] [/research].", ROUTES))).toEqual([]);
+  });
+
+  test("talking about documents fails G6, but the EC1101 project's documents do not", () => {
+    for (const reply of [
+      "The provided documents do not contain that.",
+      "The documents don't say.",
+      "Based on the provided information, he studies at NUS.",
+    ]) {
+      expect(failed(checkGlobal(reply, ROUTES)), reply).toContain("G6 speaks of the site");
+    }
+    expect(failed(checkGlobal("The chatbot covers 26 source documents [/research].", ROUTES))).toEqual([]);
+    expect(failed(checkGlobal("The site doesn't cover that.", ROUTES))).toEqual([]);
+  });
+
   test("a route fused with a document id fails G4", () => {
     // Seen live, and the judge passed it: the widget renders this as dead text.
     expect(failed(checkGlobal("See [/research:databusters/].", ROUTES))).toContain("G4 citations are real routes");
@@ -136,6 +156,14 @@ describe("checkCase", () => {
     expect(failed(checkCase(base({ mustNotInclude: ["Canberra"] }), "It is canberra."))).toEqual(["excludes Canberra"]);
   });
 
+  test("an array mustCite entry accepts any of its routes", () => {
+    // The profile and the work page both state the GPA; either is a correct source.
+    const c = base({ mustCite: [["/", "/work"]] });
+    expect(failed(checkCase(c, "4.63 out of 5.0 [/work]."))).toEqual([]);
+    expect(failed(checkCase(c, "4.63 out of 5.0 [/]."))).toEqual([]);
+    expect(failed(checkCase(c, "4.63 out of 5.0 [/research]."))).toEqual(["cites / | /work"]);
+  });
+
   test("mustCite requires the route, ignoring only a trailing slash", () => {
     const c = base({ mustCite: ["/projects/kart-telemetry/"] });
     expect(failed(checkCase(c, "Yes [/projects/kart-telemetry/]."))).toEqual([]);
@@ -178,6 +206,23 @@ describe("checkCase", () => {
     expect(failed(checkCase(decline, "The capital is Canberra."))).toEqual(["reads as decline"]);
 
     expect(failed(checkCase(base({ pattern: "contact" }), "Use the contact buttons below to get in touch."))).toEqual([]);
+  });
+
+  test("notPattern fails a fit answer that opens with a refusal", () => {
+    const c = base({ notPattern: "notCovered" });
+    expect(failed(checkCase(c, "The site doesn't cover his suitability for finance."))).toEqual([
+      "does not read as notCovered",
+    ]);
+    expect(failed(checkCase(c, "He has a second major in Economics [/]."))).toEqual([]);
+
+    const d = base({ notPattern: "decline" });
+    expect(failed(checkCase(d, "That's outside what I can help with."))).toEqual(["does not read as decline"]);
+  });
+
+  test("requireCitation needs at least one citation", () => {
+    const c = base({ requireCitation: true });
+    expect(failed(checkCase(c, "He is good with data."))).toEqual(["cites something"]);
+    expect(failed(checkCase(c, "He built dashboards [/work]."))).toEqual([]);
   });
 
   test("exact compares the whole reply", () => {
@@ -238,23 +283,25 @@ describe("eval cases", () => {
       injection: "E",
       "multi-turn": "F",
       robustness: "G",
+      fit: "H",
     };
     for (const c of CASES) expect(c.id.startsWith(`${letter[c.category]}-`), c.id).toBe(true);
   });
 
   test("every category is covered and every case has a rubric and a rule", () => {
-    expect(new Set(CASES.map((c) => c.category)).size).toBe(7);
+    expect(new Set(CASES.map((c) => c.category)).size).toBe(8);
     for (const c of CASES) {
       expect(c.expect.length, c.id).toBeGreaterThan(10);
       const hasRule =
-        c.mustInclude || c.mustNotInclude || c.mustCite || c.noCitation || c.noDigits || c.noCode || c.pattern || c.exact;
+        c.mustInclude || c.mustNotInclude || c.mustCite || c.noCitation || c.noDigits || c.noCode || c.pattern || c.exact ||
+        c.notPattern || c.requireCitation;
       expect(hasRule, `${c.id} relies on the judge alone`).toBeTruthy();
     }
   });
 
   test("required citations name pages that exist", () => {
     const pages = new Set(["/", "/work", "/projects", "/research", "/workflow", "/pipeline"]);
-    for (const route of CASES.flatMap((c) => c.mustCite ?? [])) {
+    for (const route of CASES.flatMap((c) => (c.mustCite ?? []).flat())) {
       const project = route.match(/^\/projects\/([\w-]+)\/$/);
       const research = route.match(/^\/research#([\w-]+)$/);
       if (project) expect(existsSync(`src/content/projects/${project[1]}.md`), route).toBe(true);

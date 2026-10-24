@@ -195,9 +195,11 @@ async function buildProcesses(): Promise<CorpusDoc[]> {
 function buildProfile(): CorpusDoc {
   return {
     id: "profile:about",
-    title: "About Jerome Yeoh",
+    // Not "About Jerome Yeoh": from that title the model derived a route of
+    // "/about", which does not exist. The profile lives on the home page.
+    title: "Jerome Yeoh: profile (home page)",
     route: "/",
-    text: `# About Jerome Yeoh
+    text: `# Jerome Yeoh: profile (home page)
 
 Jerome Yeoh is a Business Analytics student at the National University of
 Singapore, reading a Bachelor of Science in Business Analytics with a second

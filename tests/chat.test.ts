@@ -116,6 +116,28 @@ describe("system prompt", () => {
     expect(prompt).toContain("Never write out Jerome's email address");
   });
 
+  test("answers fit questions with evidence rather than refusing or judging", async () => {
+    const prompt = flat(buildSystemPrompt(await corpus()));
+    // Seen live: "How suitable is Jerome for a finance role?" opened with a
+    // refusal, because suitability read as an inference the rules forbid.
+    expect(prompt).toContain("# Questions about fit");
+    expect(prompt).toContain("refusing them is a failure: the answer is the evidence");
+    expect(prompt).toContain("do not point out what he lacks unless the visitor asks about it directly");
+    expect(prompt).toContain("Do not give a verdict or a score");
+    expect(prompt).toContain("Never claim experience, skills or results the documents do not state");
+    // Fit sits after the grounding rules, so it loosens framing, not facts.
+    expect(prompt.indexOf("# Questions about fit")).toBeGreaterThan(prompt.indexOf("Do not guess"));
+  });
+
+  test("asks for one route per bracket, which is all the widget links", async () => {
+    expect(flat(buildSystemPrompt(await corpus()))).toContain("Put one route in each pair of brackets");
+  });
+
+  test("keeps the corpus out of the visitor's view", async () => {
+    // Seen live: "The provided documents do not contain information..."
+    expect(flat(buildSystemPrompt(await corpus()))).toContain('never to "the documents"');
+  });
+
   test("refuses out-of-scope use, which is also the free-ChatGPT abuse path", async () => {
     const prompt = flat(buildSystemPrompt(await corpus()));
     expect(prompt).toContain("# Scope");
@@ -308,6 +330,17 @@ describe("chat widget", () => {
 
     // Punctuation pulled inside the brackets must not discard the citation.
     expect(widget()).toContain('replace(/[.,;:]+$/, "")');
+  });
+
+  test("a bracket listing several routes links each of them", () => {
+    // Seen live: "[/projects/daily-briefing/ /projects/ec1101-rag-chatbot/ /work]"
+    // and comma lists. The old pattern allowed no whitespace inside the
+    // brackets, so the whole list rendered as raw text.
+    const src = widget();
+    expect(src).toContain("matchAll(/\\s*\\[(\\/[^\\]]*)\\]/g)");
+    expect(src).toContain(".split(/[,\\s]+/)");
+    // Repeats collapse to one link, so "[/work, /work]" is not shown twice.
+    expect(src).toContain("new Set(routes)");
   });
 
   test("invites the visitor to chat, on every page", () => {

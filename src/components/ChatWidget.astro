@@ -206,21 +206,32 @@ const routeLabels: Record<string, string> = {
       if (!text.includes("[/")) return;
       el.replaceChildren();
       let cursor = 0;
-      for (const match of text.matchAll(/\s*\[(\/[^\]\s]*)\]/g)) {
+      for (const match of text.matchAll(/\s*\[(\/[^\]]*)\]/g)) {
         const at = match.index ?? 0;
         el.append(text.slice(cursor, at));
 
-        // The model sometimes pulls the sentence's punctuation inside the
-        // brackets, e.g. "[/.]" for the home route. Trim it before matching,
-        // otherwise a perfectly good citation gets thrown away.
-        const route = match[1].replace(/[.,;:]+$/, "");
-        const label = routeLabels[route];
-        if (label) {
+        // The model sometimes lists several routes in one bracket, as
+        // "[/work, /research#databusters]" or space-separated, despite being
+        // told not to. Each is linked on its own.
+        const routes = match[1]
+          .split(/[,\s]+/)
+          // It also pulls the sentence's punctuation inside the brackets,
+          // e.g. "[/.]" for the home route. Trim it before matching, otherwise
+          // a perfectly good citation gets thrown away.
+          .map((part) => part.replace(/[.,;:]+$/, ""))
+          .filter((route) => routeLabels[route]);
+
+        const links = [...new Set(routes)].map((route) => {
           const a = document.createElement("a");
           a.href = route;
           a.className = "chat-cite";
-          a.textContent = label;
-          el.append(" (", a, ")");
+          a.textContent = routeLabels[route];
+          return a;
+        });
+        if (links.length) {
+          el.append(" (");
+          links.forEach((a, i) => el.append(...(i ? [", ", a] : [a])));
+          el.append(")");
         }
         cursor = at + match[0].length;
       }

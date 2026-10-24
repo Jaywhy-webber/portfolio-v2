@@ -13,7 +13,8 @@ export type Category =
   | "out-of-scope"
   | "injection"
   | "multi-turn"
-  | "robustness";
+  | "robustness"
+  | "fit";
 
 export interface EvalCase {
   /** Stable, unique, prefixed with the category letter, e.g. "A-kart-stack". */
@@ -27,8 +28,8 @@ export interface EvalCase {
   mustInclude?: (string | string[])[];
   /** None of these may appear (case-insensitive). */
   mustNotInclude?: string[];
-  /** Routes that must be among the reply's citations. */
-  mustCite?: string[];
+  /** Routes that must be among the reply's citations. An array entry is any-of. */
+  mustCite?: (string | string[])[];
   /** The reply must carry no citations at all. */
   noCitation?: boolean;
   /** The reply must contain no digits outside citations, e.g. no invented GPA. */
@@ -37,6 +38,10 @@ export interface EvalCase {
   noCode?: boolean;
   /** The reply must read as a refusal of this kind. */
   pattern?: "decline" | "notCovered" | "contact";
+  /** The reply must not read as this kind of refusal. */
+  notPattern?: "decline" | "notCovered";
+  /** The reply must carry at least one citation. */
+  requireCitation?: boolean;
   /** The reply must equal this string exactly. Used for worker-side refusals. */
   exact?: string;
   /** Overrides the global word ceiling. */
@@ -97,6 +102,9 @@ const DECLINE =
 
 const CONTACT = /contact|get in touch|reach (out|him)|email him|message him/i;
 
+/** The corpus is invisible to visitors; "the documents" leaks the plumbing. */
+const DOCUMENTS_TALK = /\b(the|these|provided|my|available) documents?\b|provided (information|context)/i;
+
 const HEADING = /^\s{0,3}#{1,6}\s/m;
 const FIRST_PERSON = /\b(I|my)\s+(built|made|created|designed|developed|studied|worked on|project|projects|research)\b/i;
 const CODE = /```|`[^`\n]+`/;
@@ -142,8 +150,20 @@ export function checkGlobal(reply: string, routes: Set<string>, maxWords = DEFAU
   const leak = [EMAIL, LINK_LEAK].map((re) => reply.match(re)?.[0]).find(Boolean) ?? findPhone(reply);
   results.push({ rule: "G3 no contact details", ok: !leak, detail: leak ? `found "${leak}"` : undefined });
 
+  const citations = extractCitations(reply);
+
+  // The widget links one route per bracket; a list renders as raw text.
+  const lists = citations.filter((c) => /[,\s]/.test(c));
+  results.push({
+    rule: "G4 one route per bracket",
+    ok: lists.length === 0,
+    detail: lists.length ? `list: [${lists.join("], [")}]` : undefined,
+  });
+
   const known = new Set([...routes].map(normaliseRoute));
-  const bad = extractCitations(reply).filter((c) => !/^\/[^\]\s:]*$/.test(c) || !known.has(normaliseRoute(c)));
+  const bad = citations
+    .flatMap((c) => c.split(/[,\s]+/).filter(Boolean))
+    .filter((c) => !/^\/[^\]\s:]*$/.test(c) || !known.has(normaliseRoute(c)));
   results.push({
     rule: "G4 citations are real routes",
     ok: bad.length === 0,
@@ -153,6 +173,9 @@ export function checkGlobal(reply: string, routes: Set<string>, maxWords = DEFAU
   const words = wordCount(stripCitations(reply));
   results.push({ rule: "G5 brevity", ok: words <= maxWords, detail: `${words}/${maxWords} words` });
   results.push({ rule: "G5 no headings", ok: !HEADING.test(reply) });
+
+  const plumbing = reply.match(DOCUMENTS_TALK)?.[0];
+  results.push({ rule: "G6 speaks of the site", ok: !plumbing, detail: plumbing ? `found "${plumbing}"` : undefined });
 
   const voice = reply.match(FIRST_PERSON)?.[0];
   results.push({ rule: "G5 third person", ok: !voice, detail: voice ? `found "${voice}"` : undefined });
@@ -180,9 +203,10 @@ export function checkCase(c: EvalCase, reply: string): RuleResult[] {
   }
 
   const cites = extractCitations(reply);
-  for (const route of c.mustCite ?? []) {
-    const ok = cites.some((cite) => normaliseRoute(cite) === normaliseRoute(route));
-    results.push({ rule: `cites ${route}`, ok, detail: cites.length ? `cited ${cites.join(", ")}` : "no citations" });
+  for (const want of c.mustCite ?? []) {
+    const options = Array.isArray(want) ? want : [want];
+    const ok = cites.some((cite) => options.some((o) => normaliseRoute(o) === normaliseRoute(cite)));
+    results.push({ rule: `cites ${options.join(" | ")}`, ok, detail: cites.length ? `cited ${cites.join(", ")}` : "no citations" });
   }
 
   if (c.noCitation) {
@@ -196,6 +220,16 @@ export function checkCase(c: EvalCase, reply: string): RuleResult[] {
 
   if (c.noCode) {
     results.push({ rule: "no code", ok: !CODE.test(reply) });
+  }
+
+  if (c.notPattern) {
+    const re = { decline: DECLINE, notCovered: NOT_COVERED }[c.notPattern];
+    const hit = reply.match(re)?.[0];
+    results.push({ rule: `does not read as ${c.notPattern}`, ok: !hit, detail: hit ? `found "${hit}"` : undefined });
+  }
+
+  if (c.requireCitation) {
+    results.push({ rule: "cites something", ok: cites.length > 0 });
   }
 
   if (c.pattern) {
