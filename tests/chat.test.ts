@@ -494,6 +494,14 @@ describe("chat widget", () => {
     // The keyboard moves only the visual viewport, so that is what is watched.
     expect(src).toContain('window.visualViewport?.addEventListener("resize", placeCat)');
     expect(src).toContain("`${keyboard + PANEL_TOP}px`");
+    // Seen on an iPhone: the cat showing over the panel as the keyboard rose.
+    expect(src).toMatch(/\.chat--keyboard \.chat-cat \{\s*visibility: hidden/);
+  });
+
+  test("the input is 16px on touch screens, so iOS Safari does not zoom onto it", () => {
+    // Seen on an iPhone: focusing the 13px input zoomed the page, which also
+    // defeated the keyboard placement, since a zoomed page reports no keyboard.
+    expect(widget()).toMatch(/@media \(pointer: coarse\) \{\s*\.chat-input \{\s*font-size: 16px/);
   });
 
   test("the invite lands in place rather than freezing mid-slide", () => {

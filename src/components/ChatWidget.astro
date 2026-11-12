@@ -1140,6 +1140,14 @@ const routeLabels: Record<string, string> = {
     color: var(--color-text);
   }
 
+  /* iOS Safari zooms the page onto any focused field under 16px, which on an
+     iPhone threw the panel and the cat out of place as the keyboard rose. */
+  @media (pointer: coarse) {
+    .chat-input {
+      font-size: 16px;
+    }
+  }
+
   .chat-send:disabled {
     opacity: 0.55;
     cursor: default;
@@ -1182,5 +1190,12 @@ const routeLabels: Record<string, string> = {
   .chat--keyboard .chat-panel::before,
   .chat--keyboard .chat-panel::after {
     display: none;
+  }
+
+  /* The cat is normally under the keyboard, but iOS shifts the page as the
+     keyboard rises and could leave it showing over the panel. Visibility, not
+     display, so its box keeps its size for placement. */
+  .chat--keyboard .chat-cat {
+    visibility: hidden;
   }
 </style>
