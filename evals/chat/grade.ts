@@ -100,7 +100,7 @@ const NOT_COVERED =
   /\b(does ?n[o']t|do ?n[o']t|is ?n[o']t|not)\s+(\w+ly\s+)?(cover|mention|say|include|state|specify|list|contain|have|provide|know)|no (information|details|mention)|not (on|in) (the|this) site|can'?t (find|say|confirm)|cannot (find|say|confirm)|unable to (find|say|confirm)/i;
 
 const DECLINE =
-  /outside (of )?(what I can|my scope|the scope)|out of scope|can'?t help with|cannot help with|not able to help|unable to help|only (answer|discuss|help|talk)|I'?m (here|only able) to|I am (here|only able) to|I'?m limited to|I am limited to|cannot fulfil|can'?t fulfil|can only (answer|discuss|help|talk)|stick to/i;
+  /outside (of )?(what I can|my scope|the scope)|out of scope|can'?t help with|cannot help with|not able to help|unable to help|only (answer|discuss|help|talk)|I'?m (here|only able) to|I am (here|only able) to|I'?m limited to|I am limited to|cannot fulfil|can'?t fulfil|can'?t share|cannot share|can only (answer|discuss|help|talk)|stick to/i;
 
 const CONTACT = /contact|get in touch|reach (out|him)|email him|message him/i;
 
@@ -229,15 +229,19 @@ export function checkCase(c: EvalCase, reply: string): RuleResult[] {
     results.push({ rule: "no code", ok: !CODE.test(reply) });
   }
 
+  // Models write curly apostrophes as often as straight ones ("I can’t
+  // share"), and the patterns below only spell the straight kind.
+  const plain = reply.replace(/[‘’]/g, "'");
+
   if (c.notPattern) {
     const re = { decline: DECLINE, notCovered: NOT_COVERED }[c.notPattern];
-    const hit = reply.match(re)?.[0];
+    const hit = plain.match(re)?.[0];
     results.push({ rule: `does not read as ${c.notPattern}`, ok: !hit, detail: hit ? `found "${hit}"` : undefined });
   }
 
   if (c.notOpenWith) {
     const re = { decline: DECLINE, notCovered: NOT_COVERED }[c.notOpenWith];
-    const opening = firstSentence(reply);
+    const opening = firstSentence(plain);
     results.push({
       rule: `does not open as ${c.notOpenWith}`,
       ok: !re.test(opening),
@@ -251,7 +255,7 @@ export function checkCase(c: EvalCase, reply: string): RuleResult[] {
 
   if (c.pattern) {
     const re = { decline: DECLINE, notCovered: NOT_COVERED, contact: CONTACT }[c.pattern];
-    results.push({ rule: `reads as ${c.pattern}`, ok: re.test(reply) });
+    results.push({ rule: `reads as ${c.pattern}`, ok: re.test(plain) });
   }
 
   return results;
