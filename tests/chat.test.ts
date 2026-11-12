@@ -444,8 +444,8 @@ describe("chat widget", () => {
     expect(src).toContain("var(--cat-head");
     // The small bubbles sit on the head too, rather than the top of the box.
     expect(src).toContain("bottom: calc(100% - var(--cat-head-top");
-    // With the cat hidden behind a full-screen sheet there is nothing to aim at.
-    expect(src).toMatch(/\.chat\.chat--open \.chat-panel::before,\s*\.chat\.chat--open \.chat-panel::after \{\s*display: none/);
+    // With the keyboard up the cat is hidden under it; nothing to aim at.
+    expect(src).toMatch(/\.chat--keyboard \.chat-panel::before,\s*\.chat--keyboard \.chat-panel::after \{\s*display: none/);
   });
 
   test("opening the chat needs no line from the cat; the panel is its line", () => {
@@ -454,9 +454,17 @@ describe("chat widget", () => {
     expect(src).not.toContain("ask me anything");
   });
 
-  test("on a phone the open panel takes the screen and the cat steps aside", () => {
-    expect(widget()).toMatch(/\.chat\.chat--open \.chat-panel \{\s*inset: 0 0 var\(--mobile-nav-height\) 0/);
-    expect(widget()).toMatch(/\.chat--open \.chat-cat \{\s*display: none/);
+  test("on a phone the panel stays the cat's speech bubble, not a full-screen sheet", () => {
+    const src = widget();
+    expect(src).not.toMatch(/\.chat--open \.chat-panel \{\s*inset: 0/);
+    expect(src).not.toMatch(/\.chat--open \.chat-cat \{\s*display: none/);
+  });
+
+  test("the panel rides above the on-screen keyboard rather than behind it", () => {
+    const src = widget();
+    // The keyboard moves only the visual viewport, so that is what is watched.
+    expect(src).toContain('window.visualViewport?.addEventListener("resize", placeCat)');
+    expect(src).toContain("`${keyboard + PANEL_TOP}px`");
   });
 
   test("the invite lands in place rather than freezing mid-slide", () => {

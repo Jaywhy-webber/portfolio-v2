@@ -96,6 +96,30 @@ export function fallStep(
   return { y: next, velocity: v, landed: false };
 }
 
+/**
+ * Smallest drop in the visible height that counts as an on-screen keyboard.
+ * Mobile browsers also shrink it by 50-80px as their toolbars slide away on
+ * scroll, which must not throw the chat panel around.
+ */
+export const KEYBOARD_MIN = 150;
+
+/**
+ * Height of the on-screen keyboard, from the layout viewport and the visual
+ * viewport inside it, or 0 when there isn't one. A pinch zoom also shrinks
+ * the visual viewport, so a zoomed page reports no keyboard rather than a
+ * huge one.
+ */
+export function keyboardHeight(
+  layoutHeight: number,
+  visualHeight: number,
+  visualOffsetTop: number,
+  scale: number,
+): number {
+  if (scale > 1.01) return 0;
+  const hidden = layoutHeight - visualHeight - visualOffsetTop;
+  return hidden >= KEYBOARD_MIN ? hidden : 0;
+}
+
 /** The strip the cat may stand on: the floor's left and right bounds. */
 export interface Floor {
   left: number;

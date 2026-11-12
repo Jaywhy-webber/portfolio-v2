@@ -7,6 +7,7 @@ import {
   fallStep,
   HEAD,
   IDLE_MS,
+  keyboardHeight,
   nextState,
   PANEL_HEAD_TOP,
   type CatState,
@@ -131,6 +132,30 @@ describe("fallStep", () => {
 
   test("a cat dropped on the ground lands at once", () => {
     expect(fallStep(1000, 0, 0.016, 1000).landed).toBe(true);
+  });
+});
+
+describe("keyboardHeight", () => {
+  test("no keyboard when the visual viewport fills the layout one", () => {
+    expect(keyboardHeight(844, 844, 0, 1)).toBe(0);
+  });
+
+  test("reports the keyboard's height when it covers the bottom", () => {
+    expect(keyboardHeight(844, 508, 0, 1)).toBe(336);
+  });
+
+  test("accounts for the page having scrolled under the keyboard", () => {
+    // iOS scrolls the layout so the focused input shows: offsetTop moves too.
+    expect(keyboardHeight(844, 508, 120, 1)).toBe(216);
+  });
+
+  test("ignores toolbars sliding away on scroll", () => {
+    expect(keyboardHeight(844, 780, 0, 1)).toBe(0);
+  });
+
+  test("a pinch zoom is not a keyboard", () => {
+    // Zoomed 2x, the visual viewport is half the height, with no keyboard.
+    expect(keyboardHeight(844, 422, 200, 2)).toBe(0);
   });
 });
 

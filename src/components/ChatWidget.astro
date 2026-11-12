@@ -137,6 +137,7 @@ const routeLabels: Record<string, string> = {
     dragPosition,
     exceedsDragThreshold,
     fallStep,
+    keyboardHeight as measureKeyboard,
     nextState,
     type CatEvent,
     type CatState,
@@ -303,6 +304,12 @@ const routeLabels: Record<string, string> = {
       return { left: r.left, right: r.right, ground: r.top };
     }
 
+    function keyboardHeight(): number {
+      const vv = window.visualViewport;
+      if (!vv) return 0;
+      return measureKeyboard(window.innerHeight, vv.height, vv.offsetTop, vv.scale);
+    }
+
     /**
      * Puts the cat where its state says, back on the ground unless it is in
      * the air, and keeps the open panel above it. The panel stays put while
@@ -334,9 +341,21 @@ const routeLabels: Record<string, string> = {
       const headY = catY + PANEL_HEAD_TOP;
       widget!.style.setProperty("--panel-left", `${left}px`);
       widget!.style.setProperty("--panel-tail", `${tail}px`);
+      widget!.dataset.placed = "true";
+
+      // An on-screen keyboard shrinks only the visual viewport, so a panel
+      // anchored over the cat would sit behind it, input and all. While it is
+      // up, the panel stands on the keyboard and fills what is still visible.
+      const keyboard = keyboardHeight();
+      widget!.classList.toggle("chat--keyboard", keyboard > 0);
+      if (keyboard > 0) {
+        const visible = window.visualViewport!.height;
+        widget!.style.setProperty("--panel-bottom", `${keyboard + PANEL_TOP}px`);
+        widget!.style.setProperty("--panel-max-h", `${Math.max(0, visible - 2 * PANEL_TOP)}px`);
+        return;
+      }
       widget!.style.setProperty("--panel-bottom", `${window.innerHeight - headY + PANEL_GAP}px`);
       widget!.style.setProperty("--panel-max-h", `${Math.max(0, headY - PANEL_GAP - PANEL_TOP)}px`);
-      widget!.dataset.placed = "true";
     }
 
     function setOpen(open: boolean) {
@@ -547,6 +566,9 @@ const routeLabels: Record<string, string> = {
     });
 
     window.addEventListener("resize", placeCat);
+    // The keyboard opening and closing moves only the visual viewport.
+    window.visualViewport?.addEventListener("resize", placeCat);
+    window.visualViewport?.addEventListener("scroll", placeCat);
     placeCat();
     scheduleIdle();
     // Warm the other states so the first nap or drag doesn't flash empty.
@@ -1153,27 +1175,12 @@ const routeLabels: Record<string, string> = {
       /* Clear the fixed bottom nav rather than covering its last slot. */
       --chat-ground: calc(var(--mobile-nav-height) + 1rem);
     }
+  }
 
-    /* A floating card is unusable at 390px, so the panel takes the screen.
-       Doubled class so it outranks the placement rule above. */
-    .chat.chat--open .chat-panel {
-      inset: 0 0 var(--mobile-nav-height) 0;
-      width: auto;
-      max-height: none;
-      border: none;
-      border-radius: 0;
-    }
-
-    /* A full-screen sheet with the cat out of sight has nothing to point at. */
-    .chat.chat--open .chat-panel::before,
-    .chat.chat--open .chat-panel::after {
-      display: none;
-    }
-
-    /* The cat would sit on the input; the panel's own close button and
-       Escape cover closing. */
-    .chat--open .chat-cat {
-      display: none;
-    }
+  /* With the on-screen keyboard up the panel sits on top of it, over where
+     the cat is hidden, so the tail has nothing to point at. */
+  .chat--keyboard .chat-panel::before,
+  .chat--keyboard .chat-panel::after {
+    display: none;
   }
 </style>
