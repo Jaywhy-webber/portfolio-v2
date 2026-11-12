@@ -203,6 +203,19 @@ describe("home", () => {
     expect(readCss()).toContain(".has-tip:focus-visible");
   });
 
+  test("a hidden tooltip takes no room, so it cannot widen the page", () => {
+    const css = readCss();
+    // Invisible but laid out, the hero's LinkedIn tip ran ~120px past a 390px
+    // phone and mobile browsers zoomed the whole page out to fit it.
+    expect(css).toMatch(/\.tip\{[^}]*display:none/);
+    expect(css).not.toMatch(/\.tip\{[^}]*visibility:hidden/);
+  });
+
+  test("hover opens a tooltip only where the pointer can hover", () => {
+    // A tap leaves :hover stuck on, which would reopen the overflowing tip.
+    expect(readCss()).toMatch(/@media\s*\(hover:\s*hover\)\s*\{\s*\.has-tip:hover>\.tip/);
+  });
+
   test("the copy-email button ships both the mail and tick glyphs", () => {
     const html = read("dist/index.html");
     expect(html).toContain('data-copy-glyph="idle"');

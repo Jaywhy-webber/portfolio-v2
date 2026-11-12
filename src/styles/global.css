@@ -223,7 +223,6 @@ button {
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  display: flex;
   align-items: baseline;
   gap: 0.4rem;
   padding: 0.35rem 0.6rem;
@@ -234,9 +233,18 @@ button {
   line-height: 1.4;
   white-space: nowrap;
   pointer-events: none;
+  /*
+   * Out of layout while hidden, not just invisible. An invisible tip still
+   * counts toward the page's width, and the hero's long LinkedIn tip, centred
+   * on its icon, ran past the right edge of a phone, so mobile browsers zoomed
+   * the whole page out to fit it. allow-discrete lets display wait for the
+   * fade out, and @starting-style below gives the fade in a start.
+   */
+  display: none;
   opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    display 0.15s allow-discrete;
 }
 
 /* Caret anchoring the tip to its trigger. */
@@ -264,10 +272,25 @@ button {
   transform: none;
 }
 
-.has-tip:hover > .tip,
+/* Hover only where there is a pointer that hovers: a tap on a phone leaves
+   :hover stuck on, which would open the tip and bring the overflow back. */
+@media (hover: hover) {
+  .has-tip:hover > .tip {
+    display: flex;
+    opacity: 1;
+  }
+}
+
 .has-tip:focus-visible > .tip {
+  display: flex;
   opacity: 1;
-  visibility: visible;
+}
+
+@starting-style {
+  .has-tip:hover > .tip,
+  .has-tip:focus-visible > .tip {
+    opacity: 0;
+  }
 }
 
 .tip__value {
