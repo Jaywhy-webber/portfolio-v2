@@ -97,27 +97,19 @@ export function fallStep(
 }
 
 /**
- * Smallest drop in the visible height that counts as an on-screen keyboard.
- * Mobile browsers also shrink it by 50-80px as their toolbars slide away on
- * scroll, which must not throw the chat panel around.
+ * How far the bottom of the visible area sits above the bottom of the layout
+ * viewport, which is where fixed elements are measured from. Browsers differ
+ * on the on-screen keyboard: Chrome shrinks only the visible area, so this is
+ * the keyboard's height, while iOS Safari shrinks the layout viewport with it,
+ * so this is 0. Either way, a fixed element this far up from the bottom sits
+ * just above the keyboard.
+ *
+ * Whether a keyboard is up is not guessed from these numbers: Safari's answer
+ * looks the same as no keyboard at all. The widget asks whether the chat
+ * input has focus on a touch screen instead.
  */
-export const KEYBOARD_MIN = 150;
-
-/**
- * Height of the on-screen keyboard, from the layout viewport and the visual
- * viewport inside it, or 0 when there isn't one. A pinch zoom also shrinks
- * the visual viewport, so a zoomed page reports no keyboard rather than a
- * huge one.
- */
-export function keyboardHeight(
-  layoutHeight: number,
-  visualHeight: number,
-  visualOffsetTop: number,
-  scale: number,
-): number {
-  if (scale > 1.01) return 0;
-  const hidden = layoutHeight - visualHeight - visualOffsetTop;
-  return hidden >= KEYBOARD_MIN ? hidden : 0;
+export function hiddenBelow(layoutHeight: number, visualHeight: number, visualOffsetTop: number): number {
+  return Math.max(0, layoutHeight - visualHeight - visualOffsetTop);
 }
 
 /** The strip the cat may stand on: the floor's left and right bounds. */

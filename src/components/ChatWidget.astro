@@ -77,7 +77,7 @@ const routeLabels: Record<string, string> = {
     </button>
   </div>
 
-  <section class="chat-panel" id="chat-panel" aria-label="Ask about Jerome's work" hidden>
+  <section class="chat-panel" id="chat-panel" aria-label="Ask about Jerome's work" tabindex="-1" hidden>
     <header class="chat-head">
       <p class="label chat-title">Ask about this site</p>
       <button type="button" class="chat-dismiss" data-chat-close aria-label="Close chat">
@@ -137,7 +137,7 @@ const routeLabels: Record<string, string> = {
     dragPosition,
     exceedsDragThreshold,
     fallStep,
-    keyboardHeight as measureKeyboard,
+    hiddenBelow,
     nextState,
     type CatEvent,
     type CatState,
@@ -304,10 +304,12 @@ const routeLabels: Record<string, string> = {
       return { left: r.left, right: r.right, ground: r.top };
     }
 
-    function keyboardHeight(): number {
-      const vv = window.visualViewport;
-      if (!vv) return 0;
-      return measureKeyboard(window.innerHeight, vv.height, vv.offsetTop, vv.scale);
+    // On a touch screen the keyboard is up exactly while the input has focus.
+    // Measuring for it fails on iOS, which shrinks the layout along with the
+    // visible area, so the numbers look the same as no keyboard at all.
+    const touch = window.matchMedia("(pointer: coarse)");
+    function typing(): boolean {
+      return touch.matches && document.activeElement === input;
     }
 
     /**
@@ -343,14 +345,17 @@ const routeLabels: Record<string, string> = {
       widget!.style.setProperty("--panel-tail", `${tail}px`);
       widget!.dataset.placed = "true";
 
-      // An on-screen keyboard shrinks only the visual viewport, so a panel
-      // anchored over the cat would sit behind it, input and all. While it is
-      // up, the panel stands on the keyboard and fills what is still visible.
-      const keyboard = keyboardHeight();
-      widget!.classList.toggle("chat--keyboard", keyboard > 0);
-      if (keyboard > 0) {
-        const visible = window.visualViewport!.height;
-        widget!.style.setProperty("--panel-bottom", `${keyboard + PANEL_TOP}px`);
+      // While typing on a phone, the panel stands on the keyboard and fills
+      // what is still visible, with the cat out of the way. Anchored over the
+      // cat instead, it sat behind the keyboard on Chrome, and on iOS rode up
+      // with the cat to the top half of the screen.
+      const keyboardUp = typing();
+      widget!.classList.toggle("chat--keyboard", keyboardUp);
+      if (keyboardUp) {
+        const vv = window.visualViewport;
+        const visible = vv ? vv.height : window.innerHeight;
+        const below = vv ? hiddenBelow(window.innerHeight, vv.height, vv.offsetTop) : 0;
+        widget!.style.setProperty("--panel-bottom", `${below + PANEL_TOP}px`);
         widget!.style.setProperty("--panel-max-h", `${Math.max(0, visible - 2 * PANEL_TOP)}px`);
         return;
       }
@@ -363,7 +368,11 @@ const routeLabels: Record<string, string> = {
       toggle!.setAttribute("aria-expanded", String(open));
       widget!.classList.toggle("chat--open", open);
       placeCat();
-      if (open) input!.focus();
+      // Focusing the input on a phone throws the keyboard up before anyone
+      // has chosen to type, so there focus goes to the panel itself: still
+      // inside the chat for a screen reader, with the keyboard left down.
+      if (open && touch.matches) panel!.focus();
+      else if (open) input!.focus();
       else toggle!.focus();
     }
 
@@ -566,7 +575,10 @@ const routeLabels: Record<string, string> = {
     });
 
     window.addEventListener("resize", placeCat);
-    // The keyboard opening and closing moves only the visual viewport.
+    // Focus says the keyboard is coming or going; the visual viewport then
+    // reports where it settled, frame by frame as it animates.
+    input.addEventListener("focus", placeCat);
+    input.addEventListener("blur", placeCat);
     window.visualViewport?.addEventListener("resize", placeCat);
     window.visualViewport?.addEventListener("scroll", placeCat);
     placeCat();
@@ -990,6 +1002,11 @@ const routeLabels: Record<string, string> = {
   .chat-panel::after {
     margin-top: -1px;
     border-top-color: var(--color-bg);
+  }
+
+  /* Focused only as a landing spot on phones, not as a control. */
+  .chat-panel:focus {
+    outline: none;
   }
 
   .chat[data-placed] .chat-panel {

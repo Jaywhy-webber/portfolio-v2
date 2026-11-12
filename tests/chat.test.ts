@@ -491,11 +491,26 @@ describe("chat widget", () => {
 
   test("the panel rides above the on-screen keyboard rather than behind it", () => {
     const src = widget();
-    // The keyboard moves only the visual viewport, so that is what is watched.
+    // Whether the keyboard is up comes from the input's focus on a touch
+    // screen, not from measuring: iOS shrinks the layout too, so a measured
+    // keyboard came out as none and the panel rode up to the top half.
+    expect(src).toContain('window.matchMedia("(pointer: coarse)")');
+    expect(src).toContain("document.activeElement === input");
+    expect(src).toContain('input.addEventListener("focus", placeCat)');
+    expect(src).toContain('input.addEventListener("blur", placeCat)');
+    // Where it settled still comes from the visual viewport.
     expect(src).toContain('window.visualViewport?.addEventListener("resize", placeCat)');
-    expect(src).toContain("`${keyboard + PANEL_TOP}px`");
+    expect(src).toContain("`${below + PANEL_TOP}px`");
     // Seen on an iPhone: the cat showing over the panel as the keyboard rose.
     expect(src).toMatch(/\.chat--keyboard \.chat-cat \{\s*visibility: hidden/);
+  });
+
+  test("opening on a phone leaves the keyboard down until the visitor taps the input", () => {
+    const src = widget();
+    // Focusing the input on open threw the keyboard up straight away, so the
+    // speech bubble over the cat was never seen on a phone.
+    expect(src).toMatch(/if \(open && touch\.matches\) panel!\.focus\(\);\s*else if \(open\) input!\.focus\(\);/);
+    expect(readFileSync("dist/index.html", "utf-8")).toMatch(/id="chat-panel"[^>]*tabindex="-1"/);
   });
 
   test("the input is 16px on touch screens, so iOS Safari does not zoom onto it", () => {

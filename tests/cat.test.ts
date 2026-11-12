@@ -6,8 +6,8 @@ import {
   exceedsDragThreshold,
   fallStep,
   HEAD,
+  hiddenBelow,
   IDLE_MS,
-  keyboardHeight,
   nextState,
   PANEL_HEAD_TOP,
   type CatState,
@@ -135,27 +135,27 @@ describe("fallStep", () => {
   });
 });
 
-describe("keyboardHeight", () => {
-  test("no keyboard when the visual viewport fills the layout one", () => {
-    expect(keyboardHeight(844, 844, 0, 1)).toBe(0);
+describe("hiddenBelow", () => {
+  test("nothing is hidden when the visible area fills the layout", () => {
+    expect(hiddenBelow(844, 844, 0)).toBe(0);
   });
 
-  test("reports the keyboard's height when it covers the bottom", () => {
-    expect(keyboardHeight(844, 508, 0, 1)).toBe(336);
+  test("Chrome: the keyboard shrinks only the visible area, so its height is hidden", () => {
+    expect(hiddenBelow(844, 508, 0)).toBe(336);
+  });
+
+  test("iOS Safari: the layout shrinks with it, so nothing is hidden below", () => {
+    // Seen on an iPhone: measuring for a keyboard here found none, and the
+    // panel rode up with the cat to the top half of the screen.
+    expect(hiddenBelow(508, 508, 0)).toBe(0);
   });
 
   test("accounts for the page having scrolled under the keyboard", () => {
-    // iOS scrolls the layout so the focused input shows: offsetTop moves too.
-    expect(keyboardHeight(844, 508, 120, 1)).toBe(216);
+    expect(hiddenBelow(844, 508, 120)).toBe(216);
   });
 
-  test("ignores toolbars sliding away on scroll", () => {
-    expect(keyboardHeight(844, 780, 0, 1)).toBe(0);
-  });
-
-  test("a pinch zoom is not a keyboard", () => {
-    // Zoomed 2x, the visual viewport is half the height, with no keyboard.
-    expect(keyboardHeight(844, 422, 200, 2)).toBe(0);
+  test("never negative", () => {
+    expect(hiddenBelow(508, 508, 30)).toBe(0);
   });
 });
 
