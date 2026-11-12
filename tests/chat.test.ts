@@ -129,6 +129,20 @@ describe("system prompt", () => {
     expect(prompt.indexOf("# Questions about fit")).toBeGreaterThan(prompt.indexOf("Do not guess"));
   });
 
+  test("puts relevant evidence before the gap in a partial answer", async () => {
+    const prompt = flat(buildSystemPrompt(await corpus()));
+    // Seen live: "what has he done in the finance industry" opened with a
+    // refusal even though the site holds finance research.
+    expect(prompt).toContain("lead with what is relevant and cite it, and state the gap last");
+    expect(prompt).toContain("only when nothing in the documents is relevant");
+    // Seen live once this rule landed: a finance-fit answer gained a closing
+    // "the site does not cover his suitability". A finance example in the rule
+    // primed it, so the example is domain-neutral and fit is excluded twice.
+    expect(prompt).toContain("Questions about fit, below, are not partial answers");
+    expect(prompt).toContain("never add that the site doesn't state whether he suits the role");
+    expect(prompt.slice(prompt.indexOf("Many questions are partly answered"), prompt.indexOf("# Questions about fit"))).not.toMatch(/financ/i);
+  });
+
   test("asks for one route per bracket, which is all the widget links", async () => {
     expect(flat(buildSystemPrompt(await corpus()))).toContain("Put one route in each pair of brackets");
   });

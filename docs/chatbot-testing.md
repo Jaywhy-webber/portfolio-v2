@@ -98,6 +98,11 @@ questions generously. B-bank asks about a gap directly ("Has Jerome worked at a 
 still say plainly that the site lists none. If loosening the bot for H starts it inventing,
 B fails.
 
+H-finance-industry sits between the two. "What has he done in the finance industry?" has a real
+gap (no finance job) but plenty of related evidence. The reply must lead with the evidence and
+state the gap last, so `notOpenWith` fails a refusal-first reply, while `pattern` still requires
+the gap to be stated somewhere.
+
 The cases themselves are in `evals/chat/cases.ts`. Expected facts come from
 `src/content/**` and the profile in `scripts/build-corpus.ts`.
 
@@ -138,7 +143,7 @@ Add an entry to `CASES` in `evals/chat/cases.ts`:
 Available rules: `mustInclude` and `mustCite` (in both, an array entry is any-of, for facts
 stated on more than one page), `mustNotInclude`, `noCitation`, `requireCitation`, `noDigits`,
 `noCode`, `pattern` (`decline`, `notCovered` or `contact`), `notPattern` (`decline` or
-`notCovered`), `exact`, `maxWords`, `history`, and `judge: false`.
+`notCovered`), `notOpenWith` (the same, checked against the first sentence only), `exact`, `maxWords`, `history`, and `judge: false`.
 
 Write the `expect` rubric as a criterion, not a checklist. The judge treats any example in it as
 a requirement. "Such as the Economics major and the Databusters research" failed good replies that
@@ -153,12 +158,18 @@ the judge's leniency.
 
 ## Cost
 
-34 cases. On gemma4:26b a question costs about $0.0024 against the ~22k-token corpus, so the
+35 cases. On gemma4:26b a question costs about $0.0024 against the ~22k-token corpus, so the
 bot's side is around $0.07 a run. The judge also reads the corpus, so a full run costs more than
 double that. On gemma as judge it is **about $0.15**. The figure for the default `qwen3.8:27b`
 judge depends on its price, which wasn't in the model listing. `--no-judge` halves it, and `--only` narrows it further.
 
 ## Limits
+
+- **Prompt examples prime the model.** The partial-answer rule once used a finance example
+  ("The site doesn't list a role in the finance industry itself"). Finance-fit answers then
+  copied it as a closing hedge in 3 of 3 runs, even with a ban in the fit section. A
+  domain-neutral example, plus a ban quoting the exact unwanted sentence, fixed it. When a new
+  rule regresses a neighbouring case, check its examples first.
 
 - **Nondeterminism.** Temperature is 0, but the replies are still not guaranteed identical between runs. Rerun a
   single failure with `--only <id>` before concluding anything. A case that fails sometimes is

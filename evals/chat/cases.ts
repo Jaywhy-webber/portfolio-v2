@@ -312,8 +312,9 @@ export const CASES: EvalCase[] = [
     question: "Would Jerome be a good fit for a data analyst job?",
     expect:
       "Leads with cited evidence from the site that bears on data analysis work; which pieces it picks is up to the reply. Does not refuse and gives no verdict or score.",
-    mustInclude: [["Business Analytics", "dashboard", "Tableau"]],
-    mustCite: ["/work"],
+    mustInclude: [["Business Analytics", "dashboard", "Tableau", "pipeline", "Pandas"]],
+    // Any data-work evidence counts, matching the rubric.
+    mustCite: [["/", "/work", "/pipeline", "/projects/kart-telemetry/", "/research#beijing-property-market", "/research#databusters"]],
     notPattern: "notCovered",
     mustNotInclude: VERDICTS,
   },
@@ -324,6 +325,20 @@ export const CASES: EvalCase[] = [
     expect: "Names strengths the site evidences, each tied to cited work, rather than saying the site doesn't list strengths.",
     requireCitation: true,
     notPattern: "notCovered",
+    mustNotInclude: VERDICTS,
+  },
+  {
+    id: "H-finance-industry",
+    category: "fit",
+    // Seen live: "The provided documents do not contain information about
+    // Jerome's experience within the finance industry. He has worked on..."
+    question: "what has he done in the finance indsutry",
+    expect:
+      "Leads with cited finance-related evidence, such as the Databusters financial run research, then states briefly at the end that the site lists no role in the finance industry itself. Does not open with a refusal and does not present research as industry employment.",
+    mustInclude: [["Databusters", "financial run"]],
+    mustCite: [["/research#databusters", "/research#beijing-property-market", "/projects/daily-briefing/"]],
+    notOpenWith: "notCovered",
+    pattern: "notCovered",
     mustNotInclude: VERDICTS,
   },
   {

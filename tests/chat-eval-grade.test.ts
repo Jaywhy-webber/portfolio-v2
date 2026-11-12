@@ -7,6 +7,7 @@ import {
   checkCase,
   checkGlobal,
   extractCitations,
+  firstSentence,
   normaliseRoute,
   parseJudge,
   parseSse,
@@ -189,6 +190,8 @@ describe("checkCase", () => {
       "The site doesn't cover his salary expectations. Jerome is the person to ask.",
       "The site does not mention a GPA.",
       "There's no information on that here; ask Jerome.",
+      // Seen live, and missed until the pattern allowed an adverb.
+      "The site does not explicitly state his suitability for a specific finance role.",
     ]) {
       expect(failed(checkCase(notCovered, reply)), reply).toEqual([]);
     }
@@ -217,6 +220,25 @@ describe("checkCase", () => {
 
     const d = base({ notPattern: "decline" });
     expect(failed(checkCase(d, "That's outside what I can help with."))).toEqual(["does not read as decline"]);
+  });
+
+  test("notOpenWith judges only the first sentence", () => {
+    const c = base({ notOpenWith: "notCovered", pattern: "notCovered" });
+    // Seen live: the refusal first, the evidence after.
+    expect(
+      failed(checkCase(c, "The site does not cover his finance industry work. He researched financial runs [/research].")),
+    ).toEqual(["does not open as notCovered"]);
+    // Evidence first, gap last: what the prompt asks for.
+    expect(
+      failed(checkCase(c, "He researched financial runs [/research]. The site doesn't list a role in the finance industry itself.")),
+    ).toEqual([]);
+  });
+
+  test("firstSentence splits on sentence punctuation, not on route dots", () => {
+    expect(firstSentence("He built it [/projects/kart-telemetry/]. Then more.")).toBe(
+      "He built it [/projects/kart-telemetry/].",
+    );
+    expect(firstSentence("No full stop at all")).toBe("No full stop at all");
   });
 
   test("requireCitation needs at least one citation", () => {
@@ -294,7 +316,7 @@ describe("eval cases", () => {
       expect(c.expect.length, c.id).toBeGreaterThan(10);
       const hasRule =
         c.mustInclude || c.mustNotInclude || c.mustCite || c.noCitation || c.noDigits || c.noCode || c.pattern || c.exact ||
-        c.notPattern || c.requireCitation;
+        c.notPattern || c.notOpenWith || c.requireCitation;
       expect(hasRule, `${c.id} relies on the judge alone`).toBeTruthy();
     }
   });

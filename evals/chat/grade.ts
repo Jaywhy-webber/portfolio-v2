@@ -40,6 +40,8 @@ export interface EvalCase {
   pattern?: "decline" | "notCovered" | "contact";
   /** The reply must not read as this kind of refusal. */
   notPattern?: "decline" | "notCovered";
+  /** The reply's first sentence must not be this kind of refusal; later ones may be. */
+  notOpenWith?: "decline" | "notCovered";
   /** The reply must carry at least one citation. */
   requireCitation?: boolean;
   /** The reply must equal this string exactly. Used for worker-side refusals. */
@@ -95,7 +97,7 @@ const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/;
 const LINK_LEAK = /linkedin\.com|mailto:/i;
 
 const NOT_COVERED =
-  /\b(does ?n[o']t|do ?n[o']t|is ?n[o']t|not)\s+(cover|mention|say|include|state|specify|list|contain|have|provide|know)|no (information|details|mention)|not (on|in) (the|this) site|can'?t (find|say|confirm)|cannot (find|say|confirm)|unable to (find|say|confirm)/i;
+  /\b(does ?n[o']t|do ?n[o']t|is ?n[o']t|not)\s+(\w+ly\s+)?(cover|mention|say|include|state|specify|list|contain|have|provide|know)|no (information|details|mention)|not (on|in) (the|this) site|can'?t (find|say|confirm)|cannot (find|say|confirm)|unable to (find|say|confirm)/i;
 
 const DECLINE =
   /outside (of )?(what I can|my scope|the scope)|out of scope|can'?t help with|cannot help with|not able to help|unable to help|only (answer|discuss|help|talk)|I'?m (here|only able) to|I am (here|only able) to|cannot fulfil|can'?t fulfil|can only (answer|discuss|help|talk)|stick to/i;
@@ -128,6 +130,11 @@ function findPhone(text: string): string | undefined {
  */
 export function normaliseRoute(route: string): string {
   return route.replace(/\/(?=#|$)/, "") || "/";
+}
+
+/** Up to the first full stop, question or exclamation mark followed by a space. */
+export function firstSentence(text: string): string {
+  return text.trim().split(/(?<=[.!?])\s+/)[0] ?? "";
 }
 
 /** Words, counting each CJK character as one so a Chinese reply is bounded too. */
@@ -226,6 +233,16 @@ export function checkCase(c: EvalCase, reply: string): RuleResult[] {
     const re = { decline: DECLINE, notCovered: NOT_COVERED }[c.notPattern];
     const hit = reply.match(re)?.[0];
     results.push({ rule: `does not read as ${c.notPattern}`, ok: !hit, detail: hit ? `found "${hit}"` : undefined });
+  }
+
+  if (c.notOpenWith) {
+    const re = { decline: DECLINE, notCovered: NOT_COVERED }[c.notOpenWith];
+    const opening = firstSentence(reply);
+    results.push({
+      rule: `does not open as ${c.notOpenWith}`,
+      ok: !re.test(opening),
+      detail: re.test(opening) ? `opened "${opening.slice(0, 80)}"` : undefined,
+    });
   }
 
   if (c.requireCitation) {
