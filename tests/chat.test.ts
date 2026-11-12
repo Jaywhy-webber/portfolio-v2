@@ -257,8 +257,10 @@ describe("chat widget", () => {
       .map((f) => readFileSync(`dist/_astro/${f}`, "utf-8"))
       .join("\n");
 
-    // 80 is deliberate: above the mobile nav (70), below the demo overlay (100).
-    expect(css).toMatch(/\.chat\[data-astro-cid-[^\]]+\]\{[^}]*z-index:80/);
+    // Above the mobile nav (70), below the demo overlay (100). The cat sits
+    // one above the panel so it can be carried across it.
+    expect(css).toMatch(/\.chat-panel\[data-astro-cid-[^\]]+\]\{[^}]*z-index:80/);
+    expect(css).toMatch(/\.chat-cat\[data-astro-cid-[^\]]+\]\{[^}]*z-index:81/);
     // Clears the fixed bottom bar rather than covering its last slot.
     expect(css).toContain("var(--mobile-nav-height) + 1rem");
   });
@@ -366,9 +368,81 @@ describe("chat widget", () => {
 
   test("opening the chat by any route dismisses the invite", () => {
     const src = widget();
-    // Both the bubble and the invite's own call to action.
-    expect(src).toMatch(/toggle\.addEventListener\("click", \(\) => \{\s*dismissInvite\(\)/);
-    expect(src).toMatch(/data-invite-open[\s\S]*?dismissInvite\(\)[\s\S]*?setOpen\(true\)/);
+    // Both the cat and the invite's own call to action go through tapCat,
+    // which dismisses the invite before opening.
+    expect(src).toMatch(/function tapCat\(\) \{\s*dismissInvite\(\)/);
+    expect(src).toMatch(/toggle\.addEventListener\("click", \(\) => \{[\s\S]*?tapCat\(\);/);
+    expect(src).toContain('querySelector("[data-invite-open]")?.addEventListener("click", tapCat)');
+  });
+
+  test("the invite stays up until it is used, stepping aside only while the cat speaks", () => {
+    const src = widget();
+    // Carrying the cat around is not a reason to drop the invitation.
+    expect(src).not.toMatch(/function startDrag\(\) \{[^}]*dismissInvite\(\)/);
+    expect(src).toMatch(/function speak\([^)]*\) \{[\s\S]*?invite\.hidden = true/);
+    expect(src).toMatch(/function hush\(\) \{[\s\S]*?showInvite\(\);/);
+  });
+
+  test("the cat naps on a fixed idle timer, but never while the chat is open", () => {
+    const src = widget();
+    expect(src).toMatch(/enter\(\{ type: "idleTimeout", nap: panel!\.hidden \}\)/);
+    expect(src).toMatch(/\}, IDLE_MS\);/);
+  });
+
+  test("the cat is a real button that opens the panel", () => {
+    const html = readFileSync("dist/index.html", "utf-8");
+    expect(html).toMatch(/<button[^>]*id="chat-toggle"[^>]*aria-controls="chat-panel"/);
+    expect(html).toContain("Ask about Jerome's work");
+    // The chatter over its head is decoration, not an announcement.
+    expect(html).toMatch(/data-cat-say[^>]*aria-hidden="true"/);
+  });
+
+  test("the click a drag ends with does not toggle the chat", () => {
+    const src = widget();
+    expect(src).toMatch(/droppedAt = performance\.now\(\);\s*drop\(\)/);
+    expect(src).toMatch(/performance\.now\(\) - droppedAt < DROP_CLICK_MS\) return;\s*tapCat\(\)/);
+  });
+
+  test("the cat can be dragged by touch, not just mouse", () => {
+    const src = widget();
+    expect(src).toContain("setPointerCapture");
+    expect(src).toContain("touch-action: none");
+  });
+
+  test("ships the sprite strips the cat is drawn from", () => {
+    for (const state of ["idle", "nap", "drag", "click"]) {
+      expect(existsSync(`dist/assets/cat/cat-${state}.png`), state).toBe(true);
+    }
+  });
+
+  test("the cat holds still for reduced motion rather than freezing mid-frame", () => {
+    expect(widget()).toMatch(
+      /prefers-reduced-motion[\s\S]*?\.chat-cat__sprite\[data-state\] \{\s*animation: none;\s*background-position: 0 0/,
+    );
+  });
+
+  test("the panel is the cat's speech bubble, its tail aimed at the cat", () => {
+    const src = widget();
+    expect(src).toMatch(/\.chat-panel::before,\s*\.chat-panel::after \{[\s\S]*?left: var\(--panel-tail/);
+    expect(src).toContain('widget!.style.setProperty("--panel-tail"');
+    // Aimed at the current pose's head, not the middle of the cat's box.
+    expect(src).toContain("x + head.x - TAIL_HALF - left");
+    expect(src).toContain("var(--cat-head");
+    // The small bubbles sit on the head too, rather than the top of the box.
+    expect(src).toContain("bottom: calc(100% - var(--cat-head-top");
+    // With the cat hidden behind a full-screen sheet there is nothing to aim at.
+    expect(src).toMatch(/\.chat\.chat--open \.chat-panel::before,\s*\.chat\.chat--open \.chat-panel::after \{\s*display: none/);
+  });
+
+  test("opening the chat needs no line from the cat; the panel is its line", () => {
+    const src = widget();
+    expect(src).toMatch(/if \(opening\) hush\(\);\s*else speak\("Mrrp!"/);
+    expect(src).not.toContain("ask me anything");
+  });
+
+  test("on a phone the open panel takes the screen and the cat steps aside", () => {
+    expect(widget()).toMatch(/\.chat\.chat--open \.chat-panel \{\s*inset: 0 0 var\(--mobile-nav-height\) 0/);
+    expect(widget()).toMatch(/\.chat--open \.chat-cat \{\s*display: none/);
   });
 
   test("the invite lands in place rather than freezing mid-slide", () => {

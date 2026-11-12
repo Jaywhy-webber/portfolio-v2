@@ -26,19 +26,27 @@ const routeLabels: Record<string, string> = {
 };
 
 /**
- * Grounded assistant. The bubble is always reachable; the panel talks to
+ * Grounded assistant. The cat is always reachable; the panel talks to
  * /api/chat on the Worker, which holds the OpenAI key.
  *
  * transition:persist keeps this node alive across view transitions, so a
- * conversation survives clicking through to a project.
+ * conversation survives clicking through to a project, and so does wherever
+ * the visitor dropped the cat.
  */
 ---
 
 <div class="chat" id="chat-widget" data-routes={JSON.stringify(routeLabels)} transition:persist>
-  <div class="chat-launcher">
+  <!--
+    The line the cat stands on. Its box is read in JS for the ground height
+    and side gutters, so those live in CSS once instead of being mirrored
+    in script, including the mobile values that clear the bottom nav.
+  -->
+  <div class="chat-floor" data-chat-floor aria-hidden="true"></div>
+
+  <div class="chat-cat" id="chat-cat" data-side="right">
     <!--
-      Invitation beside the bubble. An icon on its own doesn't say what it
-      does, so this says it once and then gets out of the way for the session.
+      The cat's opening line. A cat on its own doesn't say what it does, so
+      this says it once and then gets out of the way for the session.
     -->
     <div class="chat-invite" id="chat-invite" hidden>
       <button type="button" class="chat-invite__cta" data-invite-open>
@@ -54,19 +62,17 @@ const routeLabels: Record<string, string> = {
       </button>
     </div>
 
+    <!-- Purely for show: "Mrrp!" read aloud on every click would be noise. -->
+    <p class="chat-say" data-cat-say aria-hidden="true" hidden></p>
+
     <button
       type="button"
-      class="chat-bubble"
+      class="chat-cat__button"
       id="chat-toggle"
       aria-expanded="false"
       aria-controls="chat-panel"
     >
-      <span class="chat-bubble__open" data-chat-glyph="closed">
-        <Icon name="chat" size="1.35rem" />
-      </span>
-      <span class="chat-bubble__close" data-chat-glyph="open" hidden>
-        <Icon name="close" size="1.35rem" />
-      </span>
+      <span class="chat-cat__sprite" data-cat-sprite data-state="idle"></span>
       <span class="visually-hidden">Ask about Jerome's work</span>
     </button>
   </div>
@@ -120,9 +126,46 @@ const routeLabels: Record<string, string> = {
 </div>
 
 <script>
+  import {
+    DANCE_MS,
+    HEAD,
+    IDLE_MS,
+    PANEL_HEAD_TOP,
+    SQUASH_MS,
+    alignToCat,
+    clamp,
+    dragPosition,
+    exceedsDragThreshold,
+    fallStep,
+    nextState,
+    type CatEvent,
+    type CatState,
+  } from "../lib/cat";
+
   const STORAGE_KEY = "chat-history";
   const INVITE_KEY = "chat-invite-seen";
   const MAX_TURNS = 8;
+
+  /** The cat's box, matching .chat-cat in the styles below. */
+  const CAT_BOX = 100;
+  /** Space between the top of the cat's head and the panel, room for the tail. */
+  const PANEL_GAP = 14;
+  /** Half the tail's width, and how close it may come to a panel corner. */
+  const TAIL_HALF = 8;
+  const TAIL_INSET = 12;
+  /** Room kept clear above the panel at the top of the window. */
+  const PANEL_TOP = 16;
+  /** Pointer releases this soon after a drag are the drag's own click. */
+  const DROP_CLICK_MS = 400;
+  const SWING_MS = 100;
+
+  const SPRITES = ["idle", "nap", "drag", "click"].map((s) => `/assets/cat/cat-${s}.png`);
+
+  /** Pixel heart, 7 by 6, drawn at 3x. */
+  const HEART_SVG =
+    '<svg viewBox="0 0 7 6" width="21" height="18" shape-rendering="crispEdges">' +
+    '<path fill="currentColor" d="M1 0h2v1H1zM4 0h2v1H4zM0 1h7v2H0zM1 3h5v1H1zM2 4h3v1H2zM3 5h1v1H3z"/>' +
+    "</svg>";
 
   interface Turn {
     role: "user" | "assistant";
@@ -158,7 +201,12 @@ const routeLabels: Record<string, string> = {
     const form = document.getElementById("chat-form") as HTMLFormElement | null;
     const input = document.getElementById("chat-input") as HTMLInputElement | null;
     const send = widget.querySelector<HTMLButtonElement>("[data-chat-send]");
+    const cat = document.getElementById("chat-cat");
+    const sprite = widget.querySelector<HTMLElement>("[data-cat-sprite]");
+    const say = widget.querySelector<HTMLElement>("[data-cat-say]");
+    const floorProbe = widget.querySelector<HTMLElement>("[data-chat-floor]");
     if (!toggle || !panel || !log || !form || !input || !send) return;
+    if (!cat || !sprite || !say || !floorProbe) return;
 
     let history = loadHistory();
     let busy = false;
@@ -242,22 +290,80 @@ const routeLabels: Record<string, string> = {
       bubble(turn.role === "user" ? "user" : "bot", turn.content);
     }
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    // The cat's left edge, or null while it sits at home, so that home keeps
+    // tracking the right of the window as it resizes. catY is its top edge.
+    let catX: number | null = null;
+    let catY = 0;
+    let airborne = false;
+
+    function floor() {
+      const r = floorProbe!.getBoundingClientRect();
+      return { left: r.left, right: r.right, ground: r.top };
+    }
+
+    /**
+     * Puts the cat where its state says, back on the ground unless it is in
+     * the air, and keeps the open panel above it. The panel stays put while
+     * the cat is carried around and catches up when it lands.
+     */
+    function placeCat() {
+      const f = floor();
+      const homeX = f.right - CAT_BOX;
+      const x = catX === null ? homeX : clamp(catX, f.left, homeX);
+      if (catX !== null) catX = x;
+      if (!airborne) catY = f.ground - CAT_BOX;
+
+      const head = HEAD[catState];
+      cat!.style.setProperty("--cat-x", `${x}px`);
+      cat!.style.setProperty("--cat-y", `${catY}px`);
+      cat!.style.setProperty("--cat-head", `${head.x}px`);
+      cat!.style.setProperty("--cat-head-top", `${head.top}px`);
+      cat!.dataset.placed = "true";
+      cat!.dataset.side = alignToCat(x, CAT_BOX, 0, f).side;
+
+      if (panel!.hidden || airborne) return;
+      // Custom properties rather than inline left/bottom, so the full-screen
+      // mobile panel in the stylesheet can ignore them.
+      const width = panel!.offsetWidth;
+      const { left } = alignToCat(x, CAT_BOX, width, f);
+      // The tail points at the cat's head, even when the panel was pushed
+      // sideways to stay on screen, but never past the panel's corners.
+      const tail = clamp(x + head.x - TAIL_HALF - left, TAIL_INSET, width - TAIL_INSET - 2 * TAIL_HALF);
+      const headY = catY + PANEL_HEAD_TOP;
+      widget!.style.setProperty("--panel-left", `${left}px`);
+      widget!.style.setProperty("--panel-tail", `${tail}px`);
+      widget!.style.setProperty("--panel-bottom", `${window.innerHeight - headY + PANEL_GAP}px`);
+      widget!.style.setProperty("--panel-max-h", `${Math.max(0, headY - PANEL_GAP - PANEL_TOP)}px`);
+      widget!.dataset.placed = "true";
+    }
+
     function setOpen(open: boolean) {
       panel!.hidden = !open;
       toggle!.setAttribute("aria-expanded", String(open));
       widget!.classList.toggle("chat--open", open);
-      widget!.querySelectorAll<HTMLElement>("[data-chat-glyph]").forEach((g) => {
-        g.hidden = g.dataset.chatGlyph !== (open ? "open" : "closed");
-      });
+      placeCat();
       if (open) input!.focus();
       else toggle!.focus();
     }
 
     const invite = document.getElementById("chat-invite");
+    // Done once the visitor opens the chat or waves the invite away. Until
+    // then it stays up, stepping aside only while the cat says something else.
+    let inviteDone = false;
+    let inviteDue = false;
+
+    function showInvite() {
+      if (invite && inviteDue && !inviteDone && panel!.hidden && say!.hidden) {
+        invite.hidden = false;
+      }
+    }
 
     function dismissInvite() {
-      if (!invite || invite.hidden) return;
-      invite.hidden = true;
+      if (inviteDone) return;
+      inviteDone = true;
+      if (invite) invite.hidden = true;
       try {
         sessionStorage.setItem(INVITE_KEY, "1");
       } catch {
@@ -274,19 +380,180 @@ const routeLabels: Record<string, string> = {
       } catch {
         /* treat unreadable storage as unseen */
       }
-      if (!seen) window.setTimeout(() => { if (panel.hidden) invite.hidden = false; }, 1200);
+      if (!seen) {
+        window.setTimeout(() => {
+          inviteDue = true;
+          showInvite();
+        }, 1200);
+      }
     }
 
-    invite?.querySelector("[data-invite-dismiss]")?.addEventListener("click", dismissInvite);
-    invite?.querySelector("[data-invite-open]")?.addEventListener("click", () => {
+    let catState: CatState = "idle";
+    let idleTimer = 0;
+    let stateTimer = 0;
+    let sayTimer = 0;
+
+    function enter(event: CatEvent): CatState {
+      catState = nextState(catState, event);
+      sprite!.dataset.state = catState;
+      // Each pose holds its head somewhere else; re-aim the bubble tails.
+      placeCat();
+      window.clearTimeout(idleTimer);
+      if (catState === "idle") scheduleIdle();
+      return catState;
+    }
+
+    /** A short line over the cat's head. Zero ms keeps it up until replaced. */
+    function speak(text: string, ms: number) {
+      window.clearTimeout(sayTimer);
+      if (invite) invite.hidden = true;
+      say!.textContent = text;
+      say!.hidden = false;
+      if (ms > 0) sayTimer = window.setTimeout(hush, ms);
+    }
+
+    function hush() {
+      window.clearTimeout(sayTimer);
+      say!.hidden = true;
+      showInvite();
+    }
+
+    function scheduleIdle() {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        // Never while someone is reading the chat. Once asleep it stays
+        // asleep until tapped or picked up.
+        enter({ type: "idleTimeout", nap: panel!.hidden });
+      }, IDLE_MS);
+    }
+
+    function floatHeart() {
+      if (reducedMotion.matches) return;
+      const heart = document.createElement("span");
+      heart.className = "chat-cat__heart";
+      heart.setAttribute("aria-hidden", "true");
+      heart.innerHTML = HEART_SVG;
+      heart.addEventListener("animationend", () => heart.remove());
+      cat!.appendChild(heart);
+    }
+
+    /** Click, tap or Enter: the cat dances and the panel opens or closes. */
+    function tapCat() {
       dismissInvite();
-      setOpen(true);
+      window.clearTimeout(stateTimer);
+      const opening = panel!.hidden;
+      enter({ type: "tap" });
+      // Opening needs no line: the panel itself is what the cat says.
+      if (opening) hush();
+      else speak("Mrrp!", DANCE_MS);
+      floatHeart();
+      stateTimer = window.setTimeout(() => {
+        if (catState === "click") enter({ type: "danceEnd" });
+      }, DANCE_MS);
+      setOpen(opening);
+    }
+
+    let press: { id: number; x: number; y: number } | null = null;
+    let droppedAt = -Infinity;
+    let swingTimer = 0;
+    let fallFrame = 0;
+
+    function startDrag() {
+      window.clearTimeout(stateTimer);
+      window.cancelAnimationFrame(fallFrame);
+      if (catX === null) catX = floor().right - CAT_BOX;
+      airborne = true;
+      enter({ type: "drag" });
+      cat!.classList.add("chat-cat--held");
+      speak("Eek! Put me down!", 0);
+      if (reducedMotion.matches) return;
+      let tilt = 6;
+      window.clearInterval(swingTimer);
+      swingTimer = window.setInterval(() => {
+        cat!.style.setProperty("--cat-tilt", `${tilt}deg`);
+        tilt = -tilt;
+      }, SWING_MS);
+    }
+
+    function land() {
+      airborne = false;
+      enter({ type: "land" });
+      placeCat();
+      if (reducedMotion.matches) return;
+      cat!.classList.add("chat-cat--landed");
+      window.setTimeout(() => cat!.classList.remove("chat-cat--landed"), SQUASH_MS);
+    }
+
+    function drop() {
+      window.clearInterval(swingTimer);
+      cat!.style.removeProperty("--cat-tilt");
+      cat!.classList.remove("chat-cat--held");
+      hush();
+      enter({ type: "drop" });
+      if (reducedMotion.matches) return land();
+
+      let velocity = 0;
+      let last = performance.now();
+      const step = (now: number) => {
+        // Capped so a backgrounded tab doesn't come back to one huge step.
+        const dt = Math.min((now - last) / 1000, 0.05);
+        last = now;
+        const next = fallStep(catY, velocity, dt, floor().ground - CAT_BOX);
+        catY = next.y;
+        velocity = next.velocity;
+        placeCat();
+        if (next.landed) land();
+        else fallFrame = window.requestAnimationFrame(step);
+      };
+      fallFrame = window.requestAnimationFrame(step);
+    }
+
+    toggle.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      press = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      toggle.setPointerCapture(e.pointerId);
+      // Caught on the way down: it hangs where it was grabbed.
+      if (catState === "fall") startDrag();
     });
 
-    toggle.addEventListener("click", () => {
-      dismissInvite();
-      setOpen(panel.hidden);
+    toggle.addEventListener("pointermove", (e) => {
+      if (!press || e.pointerId !== press.id) return;
+      if (catState !== "drag") {
+        if (!exceedsDragThreshold(e.clientX - press.x, e.clientY - press.y)) return;
+        startDrag();
+      }
+      const f = floor();
+      const at = dragPosition(e.clientX, e.clientY, CAT_BOX, CAT_BOX, f, f.ground);
+      catX = at.x;
+      catY = at.y;
+      placeCat();
     });
+
+    function endPress(e: PointerEvent) {
+      if (!press || e.pointerId !== press.id) return;
+      press = null;
+      if (catState !== "drag") return;
+      droppedAt = performance.now();
+      drop();
+    }
+    toggle.addEventListener("pointerup", endPress);
+    toggle.addEventListener("pointercancel", endPress);
+
+    // Keyboard activation arrives here too, as a click with no pointer.
+    toggle.addEventListener("click", () => {
+      // The click a browser fires after a drag ends is not a tap.
+      if (performance.now() - droppedAt < DROP_CLICK_MS) return;
+      tapCat();
+    });
+
+    window.addEventListener("resize", placeCat);
+    placeCat();
+    scheduleIdle();
+    // Warm the other states so the first nap or drag doesn't flash empty.
+    for (const src of SPRITES) new Image().src = src;
+
+    invite?.querySelector("[data-invite-dismiss]")?.addEventListener("click", dismissInvite);
+    invite?.querySelector("[data-invite-open]")?.addEventListener("click", tapCat);
     widget.querySelectorAll("[data-chat-close]").forEach((el) =>
       el.addEventListener("click", () => setOpen(false)),
     );
@@ -367,59 +634,245 @@ const routeLabels: Record<string, string> = {
 </script>
 
 <style>
+  /* Not positioned itself: the cat and the panel are each fixed in place. */
   .chat {
+    --chat-gutter: 1.25rem;
+    --chat-ground: 1.25rem;
+  }
+
+  .chat-floor {
     position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    /* Above the mobile nav (70), below the demo overlay (100) so launching a
-       demo covers the chat rather than fighting it. */
-    z-index: 80;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.75rem;
+    left: var(--chat-gutter);
+    right: var(--chat-gutter);
+    bottom: var(--chat-ground);
+    height: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 
-  /* Invite and bubble sit on one row so the callout reads as coming from it. */
-  .chat-launcher {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.6rem;
+  .chat-cat {
+    /* Home, until the script takes over placement. */
+    position: fixed;
+    right: var(--chat-gutter);
+    bottom: var(--chat-ground);
+    /* Above the mobile nav (70) and the panel, below the demo overlay (100)
+       so launching a demo covers the chat rather than fighting it. */
+    z-index: 81;
+    width: 100px;
+    height: 100px;
   }
 
-  .chat-invite {
+  .chat-cat[data-placed] {
+    top: 0;
+    left: 0;
+    right: auto;
+    bottom: auto;
+    transform: translate(var(--cat-x), var(--cat-y));
+  }
+
+  .chat-cat__button {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.15rem;
-    max-width: min(15rem, calc(100vw - 6.5rem));
-    padding: 0.55rem 0.35rem 0.55rem 0.8rem;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    /* Without this a touch drag scrolls the page instead of lifting the cat. */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Held by the scruff, so it swings from the top. */
+    transform-origin: 50% 0;
+    transform: rotate(var(--cat-tilt, 0deg));
+  }
+
+  .chat-cat--held .chat-cat__button {
+    cursor: grabbing;
+  }
+
+  .chat-cat--landed .chat-cat__button {
+    transform-origin: 50% 100%;
+    transform: scale(1.12, 0.84);
+  }
+
+  /*
+   * The strips hold every frame left to right; steps() walks the background
+   * across them a frame at a time. Whole-number scales only, or the pixels
+   * smear: idle is drawn finer, so 50px at 2x sits beside 32px at 3x.
+   */
+  .chat-cat__sprite {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+
+  .chat-cat__sprite[data-state="idle"] {
+    width: 100px;
+    height: 100px;
+    background-image: url("/assets/cat/cat-idle.png");
+    background-size: 1000px 100px;
+    animation: cat-strip-10 2s steps(10) infinite;
+  }
+
+  .chat-cat__sprite[data-state="nap"],
+  .chat-cat__sprite[data-state="drag"],
+  .chat-cat__sprite[data-state="fall"] {
+    width: 96px;
+    height: 96px;
+    background-size: 1152px 96px;
+    animation: cat-strip-12 2.4s steps(12) infinite;
+  }
+
+  .chat-cat__sprite[data-state="nap"] {
+    background-image: url("/assets/cat/cat-nap.png");
+  }
+
+  /* No falling art, and paws over the face suits a fall as well as a lift. */
+  .chat-cat__sprite[data-state="drag"],
+  .chat-cat__sprite[data-state="fall"] {
+    background-image: url("/assets/cat/cat-drag.png");
+  }
+
+  .chat-cat__sprite[data-state="click"] {
+    width: 96px;
+    height: 96px;
+    background-image: url("/assets/cat/cat-click.png");
+    background-size: 384px 96px;
+    animation: cat-strip-4 0.8s steps(4) infinite;
+  }
+
+  @keyframes cat-strip-10 {
+    to {
+      background-position: -1000px 0;
+    }
+  }
+
+  @keyframes cat-strip-12 {
+    to {
+      background-position: -1152px 0;
+    }
+  }
+
+  @keyframes cat-strip-4 {
+    to {
+      background-position: -384px 0;
+    }
+  }
+
+  /* Hearts are created in JS, so this has to be global to reach them. */
+  :global(.chat-cat__heart) {
+    position: absolute;
+    left: 50%;
+    top: 0.5rem;
+    line-height: 0;
+    color: #e2607a;
+    pointer-events: none;
+    animation: cat-heart 1.2s ease-out forwards;
+  }
+
+  @keyframes cat-heart {
+    from {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -2.5rem);
+    }
+  }
+
+  /* A still cat, not one frozen on whichever frame the animation ended on.
+     [data-state] matches the specificity of the per-state rules above. */
+  @media (prefers-reduced-motion: reduce) {
+    .chat-cat__sprite[data-state] {
+      animation: none;
+      background-position: 0 0;
+    }
+  }
+
+  /*
+   * Speech bubbles sit over the cat and open toward the middle of the page,
+   * so a cat dropped at the far left doesn't push them off screen. They sit
+   * just above the cat's head with the tail pointing down at it; both move
+   * with the pose, from --cat-head and --cat-head-top (HEAD in lib/cat).
+   */
+  .chat-invite,
+  .chat-say {
+    position: absolute;
+    bottom: calc(100% - var(--cat-head-top, 12px) + 0.5rem);
+    right: 0;
+    /* Glides down onto a cat lying down for a nap rather than jumping. */
+    transition: bottom 0.2s ease;
     border: 1px solid var(--color-border-strong);
     border-radius: 2px;
     background: var(--color-surface);
     box-shadow: 0 6px 20px color-mix(in srgb, var(--color-text) 14%, transparent);
-    animation: chat-invite-in 0.28s ease-out both;
   }
 
-  /* Tail pointing at the bubble, drawn as two triangles so the border shows. */
+  .chat-cat[data-side="left"] .chat-invite,
+  .chat-cat[data-side="left"] .chat-say {
+    right: auto;
+    left: 0;
+  }
+
   .chat-invite::before,
-  .chat-invite::after {
+  .chat-invite::after,
+  .chat-say::before,
+  .chat-say::after {
     content: "";
     position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
+    top: 100%;
+    right: calc(100px - var(--cat-head, 33px) - 6px);
     border: 6px solid transparent;
+    transition:
+      left 0.2s ease,
+      right 0.2s ease;
   }
 
-  .chat-invite::before {
-    border-left-color: var(--color-border-strong);
+  .chat-cat[data-side="left"] .chat-invite::before,
+  .chat-cat[data-side="left"] .chat-invite::after,
+  .chat-cat[data-side="left"] .chat-say::before,
+  .chat-cat[data-side="left"] .chat-say::after {
+    right: auto;
+    left: calc(var(--cat-head, 33px) - 6px);
   }
 
-  .chat-invite::after {
-    margin-left: -1px;
-    border-left-color: var(--color-surface);
+  /* Two triangles so the border shows round the tail. */
+  .chat-invite::before,
+  .chat-say::before {
+    border-top-color: var(--color-border-strong);
+  }
+
+  .chat-invite::after,
+  .chat-say::after {
+    margin-top: -1px;
+    border-top-color: var(--color-surface);
+  }
+
+  .chat-say {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--color-text);
+    pointer-events: none;
+  }
+
+  .chat-invite {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    width: max-content;
+    max-width: min(15rem, calc(100vw - 2 * var(--chat-gutter)));
+    padding: 0.55rem 0.35rem 0.55rem 0.8rem;
+    animation: chat-invite-in 0.28s ease-out both;
   }
 
   .chat-invite__cta {
@@ -457,11 +910,11 @@ const routeLabels: Record<string, string> = {
   @keyframes chat-invite-in {
     from {
       opacity: 0;
-      transform: translateX(0.5rem);
+      transform: translateY(0.5rem);
     }
     to {
       opacity: 1;
-      transform: translateX(0);
+      transform: translateY(0);
     }
   }
 
@@ -475,37 +928,53 @@ const routeLabels: Record<string, string> = {
     }
   }
 
-  .chat-bubble {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    border: 1px solid var(--color-accent);
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-text) 22%, transparent);
-    transition: background 0.15s ease, transform 0.15s ease;
-  }
-
-  .chat-bubble:hover {
-    background: var(--color-accent-hover);
-    transform: translateY(-2px);
-  }
-
   .chat-panel {
-    width: min(23rem, calc(100vw - 2.5rem));
-    max-height: min(32rem, calc(100vh - 8rem));
+    /* Over the cat at home until the script places it over wherever the cat
+       actually is. */
+    position: fixed;
+    right: var(--chat-gutter);
+    /* 100px cat, less PANEL_HEAD_TOP (4px), plus PANEL_GAP (14px). */
+    bottom: calc(var(--chat-ground) + 110px);
+    z-index: 80;
+    width: min(23rem, calc(100vw - 2 * var(--chat-gutter)));
+    max-height: min(32rem, calc(100vh - 10rem));
     display: flex;
     flex-direction: column;
-    order: -1;
     background: var(--color-surface);
     border: 1px solid var(--color-border-strong);
     border-radius: 2px;
     box-shadow: 0 18px 44px color-mix(in srgb, var(--color-text) 20%, transparent);
-    overflow: hidden;
+    /* Not hidden: the tail hangs outside the box. The log scrolls itself. */
+    overflow: visible;
+  }
+
+  /* The panel is what the cat is saying, so it gets the same tail as the
+     invite, filled to match the footer it hangs from. */
+  .chat-panel::before,
+  .chat-panel::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    /* Fallback: over the sitting cat's head at home, 67px in from the
+       right edge it shares with the panel, less half the tail. */
+    left: var(--panel-tail, calc(100% - 75px));
+    border: 8px solid transparent;
+  }
+
+  .chat-panel::before {
+    border-top-color: var(--color-border-strong);
+  }
+
+  .chat-panel::after {
+    margin-top: -1px;
+    border-top-color: var(--color-bg);
+  }
+
+  .chat[data-placed] .chat-panel {
+    left: var(--panel-left);
+    right: auto;
+    bottom: var(--panel-bottom);
+    max-height: min(32rem, var(--panel-max-h));
   }
 
   .chat-head {
@@ -530,6 +999,9 @@ const routeLabels: Record<string, string> = {
 
   .chat-log {
     flex: 1;
+    /* Shrinks to fit the panel's max-height rather than spilling past it,
+       now that the panel no longer clips. */
+    min-height: 0;
     overflow-y: auto;
     padding: 0.9rem;
     display: flex;
@@ -659,6 +1131,8 @@ const routeLabels: Record<string, string> = {
     padding: 0.6rem 0.9rem;
     border-top: var(--rule);
     background: var(--color-bg);
+    /* Keeps the panel's corners now that it no longer clips its children. */
+    border-radius: 0 0 2px 2px;
   }
 
   .chat-disclaimer {
@@ -675,16 +1149,14 @@ const routeLabels: Record<string, string> = {
 
   @media (max-width: 860px) {
     .chat {
+      --chat-gutter: 1rem;
       /* Clear the fixed bottom nav rather than covering its last slot. */
-      bottom: calc(var(--mobile-nav-height) + 1rem);
-      right: 1rem;
-      left: 1rem;
-      align-items: flex-end;
+      --chat-ground: calc(var(--mobile-nav-height) + 1rem);
     }
 
-    /* A floating card is unusable at 390px, so the panel takes the screen. */
-    .chat--open .chat-panel {
-      position: fixed;
+    /* A floating card is unusable at 390px, so the panel takes the screen.
+       Doubled class so it outranks the placement rule above. */
+    .chat.chat--open .chat-panel {
       inset: 0 0 var(--mobile-nav-height) 0;
       width: auto;
       max-height: none;
@@ -692,9 +1164,16 @@ const routeLabels: Record<string, string> = {
       border-radius: 0;
     }
 
-    .chat--open .chat-bubble {
-      position: relative;
-      z-index: 1;
+    /* A full-screen sheet with the cat out of sight has nothing to point at. */
+    .chat.chat--open .chat-panel::before,
+    .chat.chat--open .chat-panel::after {
+      display: none;
+    }
+
+    /* The cat would sit on the input; the panel's own close button and
+       Escape cover closing. */
+    .chat--open .chat-cat {
+      display: none;
     }
   }
 </style>
