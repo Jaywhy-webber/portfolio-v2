@@ -24,9 +24,21 @@
   // in the catalogue: ~$0.0103 per question against this 22k-token corpus,
   // versus ~$0.0024 on gemma4:26b. The task is grounded restatement, not
   // coding, and 128k context is ample for a 22k corpus.
+  //
+  // qwen3.6:27b since 2026-11-12, chosen over gemma4:26b after gemma went down
+  // on SoCLaaS (503 "no healthy provider backends"). It is an alias of
+  // qwen3.8:27b. Picked from all 17 chat models on 14 eval cases, graded with
+  // checkGlobal/checkCase and the same request body as the Worker: 12/14 with
+  // a median 0.4s to first word, honouring reasoning_effort "none".
+  //   - qwen3.6:35b: 10/14, 2.0s, a broken citation and "provided documents"
+  //   - x-test-3: 13/14 and as fast, but a test model that can change
+  //   - nemotron3.5:30b: obeyed prompt injection
+  // About 1c a question against this corpus, four times gemma4's cost.
+  // Because it is qwen3.8:27b, the eval's default judge, run evals with
+  // JUDGE_MODEL set to another model so it does not grade itself.
   "vars": {
     "LLM_BASE_URL": "https://soclaas-api.comp.nus.edu.sg/v1",
-    "LLM_MODEL": "gemma4:26b"
+    "LLM_MODEL": "qwen3.6:27b"
   },
 
   // Per-IP rate limit, 10 requests per 60s.

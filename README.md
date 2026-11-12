@@ -37,7 +37,7 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 234 tests, includes a real astro build
+npm run test        # vitest — 243 tests, includes a real astro build
 npm run typecheck   # astro check
 npm run eval:chat   # live eval of the assistant's replies; needs dev:worker running
 ```
@@ -112,9 +112,11 @@ wrangler secret put LLM_API_KEY
 - **The model never writes contact details.** The panel renders the copy-email control and
   the LinkedIn link itself, so the one thing that must be right can't come out wrong.
 
-A callout beside the bubble reads "Chat with me to know more about Jerome", because an icon
-on its own doesn't say what it does. It appears 1.2s after load, and it's gone for the rest
-of the session once it's dismissed or the chat is opened.
+The chat opens from a pixel-art calico cat in the corner, which can be dragged anywhere along
+the bottom of the window and naps after ten seconds idle. A speech bubble over it reads "Chat
+with me to know more about Jerome", because a cat on its own doesn't say what it does. It
+appears 1.2s after load and stays until the chat is opened or the bubble is dismissed, then is
+gone for the rest of the session. The open panel is drawn as the cat's speech bubble too.
 
 Grounding cuts fabrication sharply, but it doesn't eliminate it. The panel carries a line that
 says so.
@@ -131,17 +133,21 @@ These probes were verified live against `gemma4:26b`:
 
 ### Model and speed
 
-The model is **`gemma4:26b`** with `reasoning_effort: "none"`.
+The model is **`qwen3.6:27b`** (an alias of `qwen3.8:27b`) with `reasoning_effort: "none"`.
 
-- SoCLaaS's `default` alias points at an agentic-coding model. It's the most expensive chat
-  option in the catalogue, at about 1¢ per question against this corpus. Gemma costs about a
-  quarter of that and handles restating a document just as well.
-- Gemma and qwen3.5 are reasoning models. Left alone, they stream chain-of-thought for
+- It replaced `gemma4:26b` on 2026-11-12, after gemma went down on SoCLaaS. All 17 chat
+  models were run through 14 eval cases with the Worker's own request. It matched the best
+  accuracy of any named model, and was among the fastest to the first word, at a median of
+  0.4s. `wrangler.jsonc` records the runners-up and why they lost.
+- It costs about 1¢ per question against this corpus, four times what gemma did.
+- Because it is `qwen3.8:27b`, the eval's default judge, run `npm run eval:chat` with
+  `JUDGE_MODEL` set to another model, or it grades its own answers.
+- Many of these models reason by default. Left alone, they stream chain-of-thought for
   several seconds before they emit any answer. That's worthless here, because the task is
   restating a document, not working something out. Turning reasoning off was the single
   biggest latency fix.
 
-Measured through the Worker:
+Measured through the Worker on gemma4, before the switch:
 
 | | Before | Now |
 | --- | --- | --- |

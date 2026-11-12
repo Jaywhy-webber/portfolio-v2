@@ -5,6 +5,6 @@
  * module as a handler and refuses to start if one is a plain value.
  */
 export const DEFAULT_BASE_URL = "https://soclaas-api.comp.nus.edu.sg/v1";
-// Not SoCLaaS's "default" alias: that points at an agentic-coding model and
-// costs ~4x more per question for a task that is grounded restatement.
-export const DEFAULT_MODEL = "gemma4:26b";
+// Matches wrangler.jsonc, which says why this model. Named explicitly rather
+// than via SoCLaaS's "default" alias, which can be repointed at any time.
+export const DEFAULT_MODEL = "qwen3.6:27b";

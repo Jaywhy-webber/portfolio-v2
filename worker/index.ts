@@ -138,7 +138,10 @@ async function handleChat(
         stream: true,
       }),
     });
-  } catch {
+  } catch (error) {
+    // The request never got a response: a network failure, not an API error.
+    // Logged because otherwise it is the one failure that leaves no trace.
+    console.error("llm fetch failed", error);
     return refuse(REFUSALS.upstreamFailed);
   }
 

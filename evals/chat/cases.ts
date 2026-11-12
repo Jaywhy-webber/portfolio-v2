@@ -279,7 +279,8 @@ export const CASES: EvalCase[] = [
     id: "G-chinese",
     category: "robustness",
     question: "Jerome 在哪所大学读书？",
-    expect: "Answers that he studies at the National University of Singapore, in either language, and cites the profile or the work page.",
+    // The judge failed a correct [/] twice, not recognising "/" as the profile.
+    expect: "Answers that he studies at the National University of Singapore, in either language, and cites the profile (route \"/\") or the work page (\"/work\").",
     mustInclude: [["National University of Singapore", "NUS", "新加坡国立大学"]],
     mustCite: [PROFILE_OR_WORK],
   },

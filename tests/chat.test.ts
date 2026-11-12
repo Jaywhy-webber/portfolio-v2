@@ -141,6 +141,35 @@ describe("system prompt", () => {
     expect(prompt).toContain("Questions about fit, below, are not partial answers");
     expect(prompt).toContain("never add that the site doesn't state whether he suits the role");
     expect(prompt.slice(prompt.indexOf("Many questions are partly answered"), prompt.indexOf("# Questions about fit"))).not.toMatch(/financ/i);
+    // qwen3.6:27b still opened with the gap until the order was spelled out
+    // sentence by sentence.
+    expect(prompt).toContain("the reply's first sentence is relevant work with its citation");
+    expect(prompt).toContain('Never begin with "The site does not" when any document is relevant');
+  });
+
+  test("caps replies in words and prose, which qwen otherwise ignores", async () => {
+    const prompt = flat(buildSystemPrompt(await corpus()));
+    // Seen live: fit answers of 170-230 words, as bullet lists.
+    expect(prompt).toContain("never more than about 100 words");
+    expect(prompt).toContain("no bullet or numbered lists");
+    expect(prompt).toContain("Choose the two or three most relevant pieces");
+    // "Strongest" drew verdicts like "strong analytical skills" from qwen.
+    expect(prompt).toContain('no adjectives that judge him, such as "strong" or "excellent"');
+  });
+
+  test("points to the panel's own contact buttons", async () => {
+    // Seen live: "the site lists his contact details directly on the home page".
+    // Naming the panel's buttons drew "unsupported" from the judge, which only
+    // sees the documents, so the wording stays generic.
+    expect(flat(buildSystemPrompt(await corpus()))).toContain("tell the visitor to use the contact buttons below");
+  });
+
+  test("declines to paste a contact detail without denying the site shows it", async () => {
+    // Seen live: "The site doesn't display his email address directly", which
+    // is false; the home page shows it.
+    expect(flat(buildSystemPrompt(await corpus()))).toContain(
+      "say you won't write it out here, never that the site doesn't show it",
+    );
   });
 
   test("asks for one route per bracket, which is all the widget links", async () => {

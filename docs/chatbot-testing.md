@@ -158,10 +158,13 @@ the judge's leniency.
 
 ## Cost
 
-35 cases. On gemma4:26b a question costs about $0.0024 against the ~22k-token corpus, so the
-bot's side is around $0.07 a run. The judge also reads the corpus, so a full run costs more than
-double that. On gemma as judge it is **about $0.15**. The figure for the default `qwen3.8:27b`
-judge depends on its price, which wasn't in the model listing. `--no-judge` halves it, and `--only` narrows it further.
+35 cases. On `qwen3.6:27b` a question costs about $0.01 against the ~22k-token corpus, so the
+bot's side is around $0.35 a run. The judge also reads the corpus, so a full run is **about
+$0.70** with a judge at the same price. `--no-judge` halves it, and `--only` narrows it further.
+Prices are in the model listing, under `soclaas.input_microdollars_per_million_tokens`.
+
+`qwen3.6:27b` is an alias of `qwen3.8:27b`, the default judge, so set `JUDGE_MODEL` to another
+model (such as `qwen3.6:35b`) or the bot grades its own answers.
 
 ## Limits
 
