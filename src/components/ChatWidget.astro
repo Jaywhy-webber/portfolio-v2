@@ -11,17 +11,29 @@ import { getCollection, type CollectionEntry } from "astro:content";
  * route is "/"), so anything not listed here is dropped rather than linked to
  * a 404. And a raw path makes a poor label: the profile cites "/", which
  * rendered as a bare slash against the sentence's full stop and read as "/.".
+ *
+ * Research papers and project READMEs are cited by anchor, as the corpus
+ * gives them, so each anchor needs its own entry or the citation is dropped.
  */
 const projects = await getCollection("projects");
+const research = await getCollection("research");
 const routeLabels: Record<string, string> = {
-  "/": "Home",
+  // "Home" said nothing about what the visitor would find there.
+  "/": "Profile",
   "/work": "Work",
   "/projects": "Projects",
   "/research": "Research",
   "/workflow": "Workflow",
   "/pipeline": "Pipeline",
   ...Object.fromEntries(
-    projects.map((p: CollectionEntry<"projects">) => [`/projects/${p.id}/`, p.data.title]),
+    projects.flatMap((p: CollectionEntry<"projects">) => [
+      [`/projects/${p.id}/`, p.data.title],
+      [`/projects/${p.id}/#readme`, `${p.data.title} README`],
+    ]),
+  ),
+  ...Object.fromEntries(
+    // "Financial Run Dynamics — Databusters" is cited as "Financial Run Dynamics".
+    research.map((r: CollectionEntry<"research">) => [`/research#${r.id}`, r.data.title.split(" — ")[0]]),
   ),
 };
 
@@ -142,6 +154,7 @@ const routeLabels: Record<string, string> = {
     type CatEvent,
     type CatState,
   } from "../lib/cat";
+  import { sentenceLines, splitCitations } from "../lib/reply";
 
   const STORAGE_KEY = "chat-history";
   const INVITE_KEY = "chat-invite-seen";
@@ -242,53 +255,38 @@ const routeLabels: Record<string, string> = {
     }
 
     /**
-     * Turns [/route] citations into links once a reply has finished.
-     *
-     * Only routes that actually exist become links. The model sometimes cites
-     * a document id, or invents a descriptive path like "/about-jerome-yeoh/"
-     * for the profile document (whose route is "/"). Either would render as a
-     * link to a 404, so anything unrecognised is dropped from the text
-     * entirely rather than shown as a broken reference.
+     * Shows a reply one sentence a line, with its [/route] citations taken out
+     * of the sentences. While it streams, the citations simply disappear, so
+     * nothing jumps when it finishes. Once it is done, `sources` lists the
+     * pages it cited as links in one row underneath, each once. Routes the
+     * site doesn't have, such as an invented "/about-jerome-yeoh/", are left
+     * out rather than linked to a 404.
      */
-    function linkCitations(el: HTMLElement) {
-      const text = el.textContent ?? "";
-      if (!text.includes("[/")) return;
-      el.replaceChildren();
-      let cursor = 0;
-      for (const match of text.matchAll(/\s*\[(\/[^\]]*)\]/g)) {
-        const at = match.index ?? 0;
-        el.append(text.slice(cursor, at));
+    function showReply(el: HTMLElement, answer: string, sources = false) {
+      const { text, routes } = splitCitations(answer, routeLabels);
+      el.textContent = sentenceLines(text.trim());
+      if (!sources || !routes.length) return;
 
-        // The model sometimes lists several routes in one bracket, as
-        // "[/work, /research#databusters]" or space-separated, despite being
-        // told not to. Each is linked on its own.
-        const routes = match[1]
-          .split(/[,\s]+/)
-          // It also pulls the sentence's punctuation inside the brackets,
-          // e.g. "[/.]" for the home route. Trim it before matching, otherwise
-          // a perfectly good citation gets thrown away.
-          .map((part) => part.replace(/[.,;:]+$/, ""))
-          .filter((route) => routeLabels[route]);
-
-        const links = [...new Set(routes)].map((route) => {
-          const a = document.createElement("a");
-          a.href = route;
-          a.className = "chat-cite";
-          a.textContent = routeLabels[route];
-          return a;
-        });
-        if (links.length) {
-          el.append(" (");
-          links.forEach((a, i) => el.append(...(i ? [", ", a] : [a])));
-          el.append(")");
-        }
-        cursor = at + match[0].length;
-      }
-      el.append(text.slice(cursor));
+      const row = document.createElement("span");
+      row.className = "chat-sources";
+      const label = document.createElement("span");
+      label.className = "visually-hidden";
+      label.textContent = "Sources: ";
+      row.append(label);
+      routes.forEach((route, i) => {
+        const a = document.createElement("a");
+        a.href = route;
+        a.className = "chat-cite";
+        a.textContent = routeLabels[route];
+        row.append(...(i ? [" · ", a] : [a]));
+      });
+      el.append(row);
     }
 
+    // Replies restored from earlier in the visit get their links too.
     for (const turn of history) {
-      bubble(turn.role === "user" ? "user" : "bot", turn.content);
+      if (turn.role === "user") bubble("user", turn.content);
+      else showReply(bubble("bot"), turn.content, true);
     }
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -368,6 +366,9 @@ const routeLabels: Record<string, string> = {
       toggle!.setAttribute("aria-expanded", String(open));
       widget!.classList.toggle("chat--open", open);
       placeCat();
+      // Messages added while the panel was hidden, such as replies restored
+      // on page load, could not scroll it, so it would open on the oldest.
+      if (open) log!.scrollTop = log!.scrollHeight;
       // Focusing the input on a phone throws the keyboard up before anyone
       // has chosen to type, so there focus goes to the panel itself: still
       // inside the chat for a screen reader, with the keyboard left down.
@@ -638,7 +639,7 @@ const routeLabels: Record<string, string> = {
               const { text } = JSON.parse(payload) as { text?: string };
               if (text) {
                 answer += text;
-                reply.textContent = answer;
+                showReply(reply, answer);
                 reply.classList.remove("chat-msg--pending");
                 log.scrollTop = log.scrollHeight;
               }
@@ -649,11 +650,10 @@ const routeLabels: Record<string, string> = {
         }
       } catch {
         answer = "I couldn't reach the assistant just now. Jerome's contact details are below.";
-        reply.textContent = answer;
       }
 
       reply.classList.remove("chat-msg--pending");
-      linkCitations(reply);
+      showReply(reply, answer, true);
       history.push({ role: "assistant", content: answer });
       history = history.slice(-MAX_TURNS);
       saveHistory(history);
@@ -1132,8 +1132,19 @@ const routeLabels: Record<string, string> = {
     }
   }
 
-  :global(.chat-cite) {
+  /* The pages a reply drew on, in one quiet row under it. */
+  :global(.chat-sources) {
+    display: block;
+    margin-top: 0.45rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-text-muted) 25%, transparent);
     font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    white-space: normal;
+  }
+
+  :global(.chat-cite) {
     color: var(--color-accent);
     border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   }

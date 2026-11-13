@@ -416,22 +416,35 @@ describe("chat widget", () => {
 
     // A raw path makes a poor label: the profile cites "/", which rendered as
     // a bare slash and read as "/." against the sentence's full stop.
-    expect(labels["/"]).toBe("Home");
+    // "Home" said nothing about what the visitor would find there.
+    expect(labels["/"]).toBe("Profile");
     expect(labels["/projects/kart-telemetry/"]).toBe("Kart Telemetry Dashboard");
-
-    // Punctuation pulled inside the brackets must not discard the citation.
-    expect(widget()).toContain('replace(/[.,;:]+$/, "")');
+    // Splitting, trimming and filtering citations: tests/reply.test.ts.
   });
 
-  test("a bracket listing several routes links each of them", () => {
-    // Seen live: "[/projects/daily-briefing/ /projects/ec1101-rag-chatbot/ /work]"
-    // and comma lists. The old pattern allowed no whitespace inside the
-    // brackets, so the whole list rendered as raw text.
+  test("every route the corpus gives the model can become a link", async () => {
+    // Research and README citations carry an anchor. Missing from this map,
+    // they were silently dropped from every reply that cited them.
+    const html = readFileSync("dist/index.html", "utf-8");
+    const labels = JSON.parse(html.match(/data-routes="([^"]*)"/)![1].replace(/&quot;/g, '"')) as Record<string, string>;
+    for (const doc of await corpus()) {
+      if (doc.route) expect(labels, `no label for ${doc.route}`).toHaveProperty(doc.route);
+    }
+    expect(labels["/research#databusters"]).toBe("Financial Run Dynamics");
+    expect(labels["/projects/kart-telemetry/#readme"]).toBe("Kart Telemetry Dashboard README");
+  });
+
+  test("lists a reply's sources in a row under it, links on restored replies too", () => {
     const src = widget();
-    expect(src).toContain("matchAll(/\\s*\\[(\\/[^\\]]*)\\]/g)");
-    expect(src).toContain(".split(/[,\\s]+/)");
-    // Repeats collapse to one link, so "[/work, /work]" is not shown twice.
-    expect(src).toContain("new Set(routes)");
+    expect(src).toContain('row.className = "chat-sources"');
+    expect(src).toContain("showReply(reply, answer, true);");
+    // Before, restored replies showed raw [/route] text.
+    expect(src).toContain('else showReply(bubble("bot"), turn.content, true);');
+  });
+
+  test("opens on the newest message, even ones added while it was closed", () => {
+    // A hidden log can't scroll, so restored replies left it on the oldest.
+    expect(widget()).toMatch(/function setOpen[\s\S]*?if \(open\) log!\.scrollTop = log!\.scrollHeight;/);
   });
 
   test("invites the visitor to chat, on every page", () => {
