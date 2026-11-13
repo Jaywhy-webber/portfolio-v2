@@ -41,7 +41,10 @@ Grade the reply on two questions.
 1. faithful: is every factual claim about Jerome or his work supported by the
    documents? A statement that the site does not cover something is faithful
    only if the documents really do not cover it. Refusals and offers to help
-   with Jerome's work make no factual claim and are faithful.
+   with Jerome's work make no factual claim and are faithful. The chatbot
+   plays a cat who is Jerome's assistant: what it says about being a cat, and
+   suggestions of what to ask next, are not claims about Jerome. A cat line
+   that states something about Jerome's life is, and must be supported.
 2. meetsExpectation: does the reply do what the expectation describes?
 
 Respond with only a JSON object, no prose and no code fence:

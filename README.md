@@ -37,7 +37,7 @@ It needs a key in `.dev.vars` (see [Setting the key](#setting-the-key)).
 ## Checks
 
 ```bash
-npm run test        # vitest — 243 tests, includes a real astro build
+npm run test        # vitest — 252 tests, includes a real astro build
 npm run typecheck   # astro check
 npm run eval:chat   # live eval of the assistant's replies; needs dev:worker running
 ```
@@ -182,7 +182,7 @@ trimmed corpus would.
 
 ### Troubleshooting
 
-Every reply saying *"Something went wrong reaching the model"* means the upstream call failed.
+Every reply saying *"Something knocked my connection off the table"* means the upstream call failed.
 The Worker logs the status code and the key's **length** (never its value), so you can tell
 these cases apart:
 
